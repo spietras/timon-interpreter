@@ -81,6 +81,26 @@ class FileReaderEndedTestCase(unittest.TestCase):
         self.file_reader.close()
 
 
+class FileReaderOpenedTestCase(unittest.TestCase):
+    def setUp(self):
+        self.mock_open = make_mock_open(self, 'a')
+
+        self.file_reader = FileReader("whatever")
+
+    def test_opened_before_open(self):
+        self.assertFalse(self.file_reader.opened())
+
+    def test_opened_after_open(self):
+        self.file_reader.open()
+        self.assertTrue(self.file_reader.opened())
+        self.file_reader.close()
+
+    def test_opened_after_close(self):
+        self.file_reader.open()
+        self.file_reader.close()
+        self.assertFalse(self.file_reader.opened())
+
+
 class FileReaderPositionsTestCase(unittest.TestCase):
     def setUp(self):
         self.mock_open = make_mock_open(self, 'a\na\na\nfourth line')
@@ -110,3 +130,18 @@ class FileReaderPositionsTestCase(unittest.TestCase):
 
     def tearDown(self):
         self.file_reader.close()
+
+
+class FileReaderWithTestCase(unittest.TestCase):
+    def setUp(self):
+        self.mock_open = make_mock_open(self, 'abc')
+
+    def test_opened_in_with(self):
+        with FileReader("whatever") as fr:
+            self.assertTrue(fr.opened())
+
+    def test_closed_after_with(self):
+        with FileReader("whatever") as fr:
+            fr.get()
+
+        self.assertFalse(fr.opened())

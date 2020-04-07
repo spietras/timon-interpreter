@@ -36,6 +36,7 @@ class FileReader:
         """
 
         self._file.close()
+        self._file = None
 
     def peek(self):
         """
@@ -70,6 +71,14 @@ class FileReader:
         """
 
         return self.peek() == ''
+
+    def opened(self):
+        """
+        Returns:
+            True if file is opened
+        """
+
+        return self._file is not None
 
     def _advance_positions(self, character):
         self.absolute_pos += 1

@@ -77,3 +77,10 @@ class FileReader:
         if character == '\n':
             self.line_num += 1
             self.line_pos = 0
+
+    def __enter__(self):
+        self.open()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()

@@ -61,3 +61,52 @@ class FileReaderPeekTestCase(unittest.TestCase):
 
     def tearDown(self):
         self.file_reader.close()
+
+
+class FileReaderEndedTestCase(unittest.TestCase):
+    def setUp(self):
+        self.mock_open = make_mock_open(self, 'a')
+
+        self.file_reader = FileReader("whatever")
+        self.file_reader.open()
+
+    def test_ended_not_on_end(self):
+        self.assertFalse(self.file_reader.ended())
+
+    def test_ended_on_end(self):
+        self.file_reader.get()
+        self.assertTrue(self.file_reader.ended())
+
+    def tearDown(self):
+        self.file_reader.close()
+
+
+class FileReaderPositionsTestCase(unittest.TestCase):
+    def setUp(self):
+        self.mock_open = make_mock_open(self, 'a\na\na\nfourth line')
+
+        self.file_reader = FileReader("whatever")
+        self.file_reader.open()
+
+    def test_positions_in_line(self):
+        for _ in range(11):
+            self.file_reader.get()
+        self.assertEqual(4, self.file_reader.line_num)
+        self.assertEqual(5, self.file_reader.line_pos)
+        self.assertEqual(11, self.file_reader.absolute_pos)
+
+    def test_positions_not_advance_at_end(self):
+        for _ in range(17):
+            self.file_reader.get()
+        self.assertEqual(4, self.file_reader.line_num)
+        self.assertEqual(11, self.file_reader.line_pos)
+        self.assertEqual(17, self.file_reader.absolute_pos)
+
+        self.file_reader.get()
+
+        self.assertEqual(4, self.file_reader.line_num)
+        self.assertEqual(11, self.file_reader.line_pos)
+        self.assertEqual(17, self.file_reader.absolute_pos)
+
+    def tearDown(self):
+        self.file_reader.close()

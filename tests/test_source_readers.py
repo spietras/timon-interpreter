@@ -36,9 +36,18 @@ class FileReaderGetTestCase(unittest.TestCase):
         self.assertEqual('b', self.file_reader.get())
 
     def test_get_end(self):
-        self.file_reader.get()
-        self.file_reader.get()
+        self.file_reader.get(2)
         self.assertEqual('', self.file_reader.get())
+
+    def test_get_multiple(self):
+        self.assertEqual('ab', self.file_reader.get(2))
+
+    def test_get_more_than_available(self):
+        self.assertEqual('ab', self.file_reader.get(10))
+        self.assertEqual('', self.file_reader.get())
+
+    def test_get_negative(self):
+        self.assertRaises(ValueError, self.file_reader.get, -10)
 
     def tearDown(self):
         self.file_reader.close()
@@ -46,7 +55,7 @@ class FileReaderGetTestCase(unittest.TestCase):
 
 class FileReaderPeekTestCase(unittest.TestCase):
     def setUp(self):
-        self.mock_open = make_mock_open(self, 'a')
+        self.mock_open = make_mock_open(self, 'ab')
 
         self.file_reader = FileReader("whatever")
         self.file_reader.open()
@@ -56,8 +65,26 @@ class FileReaderPeekTestCase(unittest.TestCase):
         self.assertEqual('a', self.file_reader.get())
 
     def test_peek_end(self):
-        self.file_reader.get()
+        self.file_reader.get(2)
         self.assertEqual('', self.file_reader.peek())
+
+    def test_peek_multiple(self):
+        self.assertEqual('ab', self.file_reader.peek(2))
+
+    def test_peek_more_than_available(self):
+        self.assertEqual('ab', self.file_reader.peek(10))
+
+    def test_peek_negative(self):
+        self.file_reader.get(1)
+        self.assertEqual('a', self.file_reader.peek(-1))
+
+    def test_peek_negative_multiple(self):
+        self.file_reader.get(2)
+        self.assertEqual('ab', self.file_reader.peek(-2))
+
+    def test_peek_negative_more_than_available(self):
+        self.file_reader.get(2)
+        self.assertEqual('ab', self.file_reader.peek(-10))
 
     def tearDown(self):
         self.file_reader.close()

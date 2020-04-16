@@ -4,6 +4,8 @@ Source stream readers
 
 """
 
+import os
+
 
 class FileReader:
     """
@@ -38,31 +40,41 @@ class FileReader:
         self._file.close()
         self._file = None
 
-    def peek(self):
+    def peek(self, n=1):
         """
-        Get next character without consuming it
+        Get n next (if n positive) or previous (if n negative) characters without consuming them
 
         Returns:
-            next character or empty string if file ended
+            characters (can be less than n if file ended)
         """
 
         position = self._file.tell()  # position from the beginning of the file
-        character = self._file.read(1)
-        self._file.seek(position, 0)  # set previous position, explicitly from the beginning of the file
-        return character
 
-    def get(self):
+        if n < 0:
+            n = -n
+            offset = max(0, self.absolute_pos - n)
+            self._file.seek(offset,  os.SEEK_SET)
+
+        characters = self._file.read(n)
+        self._file.seek(position, os.SEEK_SET)  # set previous position, explicitly from the beginning of the file
+
+        return characters
+
+    def get(self, n=1):
         """
-        Get next character and consume it
+        Get next n characters and consume them
 
         Returns:
-            next character or empty string if file ended
+            next characters (can be less than n if file ended)
         """
 
-        character = self._file.read(1)
-        if character:
-            self._advance_positions(character)
-        return character
+        if n < 0:
+            raise ValueError("Get size can't be negative")
+
+        characters = self._file.read(n)
+        if characters:
+            self._advance_positions(characters)
+        return characters
 
     def ended(self):
         """
@@ -80,12 +92,13 @@ class FileReader:
 
         return self._file is not None
 
-    def _advance_positions(self, character):
-        self.absolute_pos += 1
-        self.line_pos += 1
-        if character == '\n':
-            self.line_num += 1
-            self.line_pos = 0
+    def _advance_positions(self, characters):
+        for character in characters:
+            self.absolute_pos += 1
+            self.line_pos += 1
+            if character == '\n':
+                self.line_num += 1
+                self.line_pos = 0
 
     def __enter__(self):
         self.open()

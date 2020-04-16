@@ -136,15 +136,13 @@ class FileReaderPositionsTestCase(unittest.TestCase):
         self.file_reader.open()
 
     def test_positions_in_line(self):
-        for _ in range(11):
-            self.file_reader.get()
+        self.file_reader.get(11)
         self.assertEqual(4, self.file_reader.line_num)
         self.assertEqual(5, self.file_reader.line_pos)
         self.assertEqual(11, self.file_reader.absolute_pos)
 
     def test_positions_not_advance_at_end(self):
-        for _ in range(17):
-            self.file_reader.get()
+        self.file_reader.get(17)
         self.assertEqual(4, self.file_reader.line_num)
         self.assertEqual(11, self.file_reader.line_pos)
         self.assertEqual(17, self.file_reader.absolute_pos)

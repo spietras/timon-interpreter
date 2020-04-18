@@ -60,7 +60,7 @@ class TokenType(NoValueEnum):
     NUMBER_LITERAL      = auto()
     DATE_LITERAL        = auto()
     DATETIME_LITERAL    = auto()
-    HOUR_LITERAL        = auto()
+    TIME_LITERAL        = auto()
     TIMEDELTA_LITERAL   = auto()
 
 
@@ -143,7 +143,7 @@ class DateValue:
         return self._date.day
 
 
-class HourValue:
+class TimeValue:
     def __init__(self, hour, minute, second):
         try:
             self._time = time(hour, minute, second)
@@ -151,7 +151,7 @@ class HourValue:
             raise error_handling.LexicalError("{}. Passed values were: hour={}, minute={}, second={}".format(str(e).capitalize(), hour, minute, second))
 
     def __eq__(self, other):
-        if not isinstance(other, HourValue):
+        if not isinstance(other, TimeValue):
             return NotImplemented
 
         return self._time == other._time
@@ -166,16 +166,16 @@ class HourValue:
         return self._time.second
 
 
-class DateTimeValue(DateValue, HourValue):
+class DateTimeValue(DateValue, TimeValue):
     def __init__(self, day, month, year, hour, minute, second):
         DateValue.__init__(self, day, month, year)
-        HourValue.__init__(self, hour, minute, second)
+        TimeValue.__init__(self, hour, minute, second)
 
     def __eq__(self, other):
         if not isinstance(other, DateTimeValue):
             return NotImplemented
 
-        return DateValue.__eq__(self, other) and HourValue.__eq__(self, other)
+        return DateValue.__eq__(self, other) and TimeValue.__eq__(self, other)
 
 
 class TimedeltaValue:
@@ -230,7 +230,7 @@ token_value_valid_types_map = {
     TokenType.NUMBER_LITERAL    : int,
     TokenType.DATE_LITERAL      : DateValue,
     TokenType.DATETIME_LITERAL  : DateTimeValue,
-    TokenType.HOUR_LITERAL      : HourValue,
+    TokenType.TIME_LITERAL      : TimeValue,
     TokenType.TIMEDELTA_LITERAL : TimedeltaValue
 }
 
@@ -247,7 +247,7 @@ class Token:
                - int for NUMBER_LITERAL
                - DateValue for DATE_LITERAL
                - DateTimeValue for DATETIME_LITERAL
-               - HourValue for HOUR_LITERAL
+               - TimeValue for TIME_LITERAL
                - TimedeltaValue for TIMEDELTA_LITERAL
                - None for others
         line_num: number of line where the token was found

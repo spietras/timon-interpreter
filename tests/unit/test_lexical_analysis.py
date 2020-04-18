@@ -302,7 +302,7 @@ class LexerDateLiteralTestCase(BaseLexerTestCase):
 class LexerHourLiteralTestCase(BaseLexerTestCase):
     @mock.patch('builtins.open', return_value=io.StringIO("20:00:00"))
     def test_get_hour_literal(self, mock_open):
-        self.assert_token(tokens.TokenType.HOUR_LITERAL, tokens.HourValue(20, 0, 0))
+        self.assert_token(tokens.TokenType.TIME_LITERAL, tokens.TimeValue(20, 0, 0))
 
     @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO("20:20;"))
@@ -327,7 +327,7 @@ class LexerHourLiteralTestCase(BaseLexerTestCase):
 
     @mock.patch('builtins.open', return_value=io.StringIO("20:00:001"))
     def test_get_hour_literal_digits_follow_second(self, mock_open):
-        self.assert_token(tokens.TokenType.HOUR_LITERAL, tokens.HourValue(20, 0, 0))
+        self.assert_token(tokens.TokenType.TIME_LITERAL, tokens.TimeValue(20, 0, 0))
 
     @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO("25:00:00"))

@@ -268,11 +268,11 @@ class NumericalLiteralSubLexer(SubLexer):
         values.append(digits_to_int(digits))
 
         try:
-            return tokens.Token(tokens.TokenType.HOUR_LITERAL,
+            return tokens.Token(tokens.TokenType.TIME_LITERAL,
                                 self.start_line_num,
                                 self.start_line_pos,
                                 self.start_absolute_pos,
-                                tokens.HourValue(values[0], values[1], values[2]))
+                                tokens.TimeValue(values[0], values[1], values[2]))
         except error_handling.LexicalError as e:
             self.make_error(e.message)
 

@@ -40,7 +40,7 @@ class FileReader:
         self._file.close()
         self._file = None
 
-    def peek(self, n=1):
+    def peek(self, n=1, start_pos=None):
         """
         Get n next (if n positive) or previous (if n negative) characters without consuming them
 
@@ -50,9 +50,20 @@ class FileReader:
 
         position = self._file.tell()  # position from the beginning of the file
 
+        self._file.seek(0, os.SEEK_END)
+        file_size = self._file.tell()
+
+        if start_pos is None:
+            start_pos = position
+
+        if start_pos < 0 or start_pos > file_size:
+            raise ValueError("Start position outside of range. Only possible range is [0, {}]".format(file_size))
+
+        self._file.seek(start_pos, os.SEEK_SET)
+
         if n < 0:
             n = -n
-            offset = max(0, self.absolute_pos - n)
+            offset = max(0, start_pos - n)
             self._file.seek(offset,  os.SEEK_SET)
 
         characters = self._file.read(n)

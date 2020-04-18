@@ -86,6 +86,15 @@ class FileReaderPeekTestCase(unittest.TestCase):
         self.file_reader.get(2)
         self.assertEqual('ab', self.file_reader.peek(-10))
 
+    def test_peek_with_start_position(self):
+        self.assertEqual('b', self.file_reader.peek(1, 1))
+
+    def test_peek_with_start_position_negative(self):
+        self.assertRaises(ValueError, self.file_reader.peek, 1, -10)
+
+    def test_peek_with_start_position_after_end(self):
+        self.assertRaises(ValueError, self.file_reader.peek, -1, 10)
+
     def tearDown(self):
         self.file_reader.close()
 

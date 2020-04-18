@@ -1,5 +1,0 @@
-"""
-
-Lexical analysis tests
-
-"""

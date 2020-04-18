@@ -248,6 +248,7 @@ class Token:
                - DateValue for DATE_LITERAL
                - DateTimeValue for DATETIME_LITERAL
                - HourValue for HOUR_LITERAL
+               - TimedeltaValue for TIMEDELTA_LITERAL
                - None for others
         line_num: number of line where the token was found
         line_pos: position in line where the token was found

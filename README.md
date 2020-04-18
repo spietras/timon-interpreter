@@ -1,5 +1,5 @@
 # timon-interpreter
-Python based interpreter for simple date oriented language
+Python based interpreter for simple time oriented language
 
 ## Requirements:
 - Python >= 3.6

@@ -1,0 +1,94 @@
+program = { nestableStatement | nonNestableStatement } ;
+
+nonNestableStatement = functionDefinitionStatement, ";" ;
+nestableStatement = ( functionCallStatement |
+                      variableDefinitionStatement |
+                      variableAssignmentStatement |
+                      ifStatement |
+                      fromStatement |
+                      printStatement |
+                      returnStatement ), ";" ;
+
+functionDefinitionStatement = "fun", identifier, parameters, body ;
+functionCallStatement = identifier, parameters ;
+variableDefinitionStatement = "var", identifier, [ assignment ] ;
+variableAssignmentStatement = identifier, assignment ;
+ifStatement = "if", logicExpr, body, [ "else", body ] ;
+fromStatement = "from", fromRange, fromStep, fromIterator, body ;
+printStatement = "print", mathExpr ;
+returnStatement = "return", mathExpr ;
+
+identifier = nonDigitCharacter, { character } ;
+parameters = "(", [ identifier, { ",", identifier } ], ")" ;
+body = "{", { nestableStatement }, "}" ;
+
+assignment = assignmentOperator, mathExpr ;
+
+logicExpr = logicAndExpr, { orOperator, logicAndExpr } ;
+logicAndExpr = logicEqualExpr, { andOperator, logicEqualExpr } ;
+logicEqualExpr = logicRelExpr, [ equalityOperator, logicRelExpr ] ;
+logicRelExpr = logicTerm, [ relationOperator, logicTerm ] ;
+logicTerm = [ logicNegOperator ], ( mathExpr | parenthesisedLogicExpr ) ;
+parenthesisedLogicExpr = "(", logicExpr, ")" ;
+
+fromRange = mathExpr, "to", mathExpr ;
+fromStep = "by", timeUnit ;
+fromIterator = "as", identifier ;
+
+mathExpr = multMathExpr, { additiveOperator, multMathExpr } ;
+multMathExpr = mathTerm, { multiplicativeOperator, mathTerm } ;
+mathTerm = [ mathNegOperator ], ( value | parenthesisedMathExpr ) ;
+parenthesisedMathExpr = "(", mathExpr, ")" ;
+
+nonDigitCharacter = letter | specialCharacter ;
+character = nonDigitCharacter | digit ;
+
+assignmentOperator = "=" ;
+orOperator = "|" ;
+andOperator = "&" ;
+equalityOperator = "==" | "!=" ;
+relationOperator = ">" | ">=" | "<" | "<=" ;
+logicNegOperator = "!" ;
+
+timeUnit = "years" |
+           "months" |
+           "weeks" |
+           "days" |
+           "hours" |
+           "minutes" |
+           "seconds" ;
+
+additiveOperator = "+" | "-" ;
+multiplicativeOperator = "*" | "/" ;
+mathNegOperator = "-" ;
+
+value = identifier | literal | functionCallStatement | timeInfoAccess ;
+
+literal = numberLiteral | stringLiteral | dateLiteral |
+          timeLiteral | datetimeLiteral | timedeltaLiteral ;
+timeInfoAccess = identifier, ".", timeUnit ;
+
+numberLiteral = "0" | ( nonZeroDigit, { digit } ) ;
+stringLiteral = '"', { stringCharacter }, '"' ;
+dateLiteral = two_digits, ".", two_digits, ".", four_digits ;
+timeLiteral = two_digits, ":", two_digits, ":", two_digits ;
+datetimeLiteral = dateLiteral, "~", timeLiteral ;
+timedeltaLiteral = "'", [ numberLiteral, "Y" ], [ numberLiteral, "M" ],
+                        [ numberLiteral, "W" ], [ numberLiteral, "D" ],
+                        [ numberLiteral, "h" ], [ numberLiteral, "m" ],
+                        [ numberLiteral, "s" ], "'" ;
+
+letter = "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" |
+         "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" |
+         "u" | "v" | "w" | "x" | "y" | "z" |
+         "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" |
+         "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" |
+         "U" | "V" | "W" | "X" | "Y" | "Z" ;
+specialCharacter = "_" ;
+digit = "0" | nonZeroDigit ;
+nonZeroDigit = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+
+stringCharacter = ? all visible characters ? - '"' ;
+
+two_digits = 2 * digit ;
+four_digits = 4 * digit ;

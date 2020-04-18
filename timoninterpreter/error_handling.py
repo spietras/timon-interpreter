@@ -30,9 +30,6 @@ class LexicalError(InterpreterError):
 # Reporting
 
 
-LEXICAL_ERROR_HEADER = "Lexical error"
-LEXICAL_WARNING_HEADER = "Lexical warning"
-
 MAX_CHAR_SIDE_PEEK = 30
 
 
@@ -46,9 +43,13 @@ def _read_snippet(line_pos, absolute_pos, source_reader):
     return (left_chars + middle_right_chars).partition('\n')[0], left_chars_num
 
 
-def report_lexical_error(line_num, line_pos, absolute_pos, source_reader, message, stream=sys.stdout):
+def report_generic_error(error_type, message, stream=sys.stdout):
+    print("{} error: {}".format(error_type, message), file=stream)
+
+
+def _report_positional_error(error_type, line_num, line_pos, absolute_pos, source_reader, message, stream=sys.stdout):
     file_name = source_reader.file_path.rpartition('/')[2]
-    print("{}:{}:{}: {}: {}".format(file_name, line_num, line_pos, LEXICAL_ERROR_HEADER, message), file=stream)
+    print("{}:{}:{}: {} error: {}".format(file_name, line_num, line_pos, error_type, message), file=stream)
 
     snippet, left_chars_num = _read_snippet(line_pos, absolute_pos, source_reader)
     print(snippet, file=stream)
@@ -57,9 +58,9 @@ def report_lexical_error(line_num, line_pos, absolute_pos, source_reader, messag
     print(marker, file=stream)
 
 
-def report_lexical_warning(line_num, line_pos, absolute_pos, source_reader, message, action, stream=sys.stdout):
+def _report_positional_warning(warning_type, line_num, line_pos, absolute_pos, source_reader, message, action, stream=sys.stdout):
     file_name = source_reader.file_path.rpartition('/')[2]
-    print("{}:{}:{}: {}: {}".format(file_name, line_num, line_pos, LEXICAL_WARNING_HEADER, message), file=stream)
+    print("{}:{}:{}: {} warning: {}".format(file_name, line_num, line_pos, warning_type, message), file=stream)
     print(action, file=stream)
 
     snippet, left_chars_num = _read_snippet(line_pos, absolute_pos, source_reader)
@@ -67,3 +68,11 @@ def report_lexical_warning(line_num, line_pos, absolute_pos, source_reader, mess
 
     marker = " " * left_chars_num + "^"
     print(marker, file=stream)
+
+
+def report_lexical_error(line_num, line_pos, absolute_pos, source_reader, message, stream=sys.stdout):
+    _report_positional_error("Lexical", line_num, line_pos, absolute_pos, source_reader, message, stream)
+
+
+def report_lexical_warning(line_num, line_pos, absolute_pos, source_reader, message, action, stream=sys.stdout):
+    _report_positional_warning("Lexical", line_num, line_pos, absolute_pos, source_reader, message, action, stream)

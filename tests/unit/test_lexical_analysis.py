@@ -379,6 +379,14 @@ class LexerTimedeltaLiteralTestCase(BaseLexerTestCase):
     def test_get_timedelta_literal_no_whitespaces(self, mock_open):
         self.assert_token(tokens.TokenType.TIMEDELTA_LITERAL, tokens.TimedeltaValue(months=1, days=2, minutes=3))
 
+    @mock.patch('builtins.open', return_value=io.StringIO("''"))
+    def test_get_timedelta_literal_empty(self, mock_open):
+        self.assert_token(tokens.TokenType.TIMEDELTA_LITERAL, tokens.TimedeltaValue())
+
+    @mock.patch('builtins.open', return_value=io.StringIO("'                '"))
+    def test_get_timedelta_literal_empty_with_whitespaces(self, mock_open):
+        self.assert_token(tokens.TokenType.TIMEDELTA_LITERAL, tokens.TimedeltaValue())
+
     @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO("'1Y 2M 3W abcdef'"))
     def test_get_timedelta_literal_illegal_characters(self, mock_report, mock_open):

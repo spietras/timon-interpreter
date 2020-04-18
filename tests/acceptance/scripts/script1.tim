@@ -1,0 +1,15 @@
+fun printDaysBetweenDates(d1,d2)
+{
+    # saving to d3 each consecutive day between d1 and d2 #
+    from d1 to d2 by days as d3
+    {
+        print d3;
+    };
+
+    return 0;
+};
+
+var dt = 10.04.2018~10:57:00; # moment in time #
+var d = 12.04.2018; # date #
+
+printDaysBetweenDates(dt, d);

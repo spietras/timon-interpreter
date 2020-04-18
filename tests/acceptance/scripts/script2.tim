@@ -1,0 +1,14 @@
+var start_time = 10.06.2020;
+var delay = '10W 10D';
+
+var prev_t1 = 25.05.2020;
+var prev_t2 = 20.05.2020;
+
+if start_time + (prev_t1 - prev_t2) + delay <= 20.06.2020
+{
+    print "we have time";
+}
+else
+{
+    print "we dont have time";
+};

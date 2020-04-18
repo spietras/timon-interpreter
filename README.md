@@ -4,7 +4,9 @@ Python based interpreter for simple date oriented language
 ## Requirements:
 - Python >= 3.6
 
-##Execution:
+## Usage:
+
+Run from cmd from top directory:
 
 ```
 python3 -m timoninterpreter PATH_TO_SCRIPT

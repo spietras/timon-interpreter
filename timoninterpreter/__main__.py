@@ -25,7 +25,7 @@ def run(path):
         print(format_string.format("token", "type", "line number", "line position", "absolute position"))
         for token in read_tokens:
             print(format_string.format(str(token)[:50], token.type, token.line_num, token.line_pos, token.absolute_pos))
-            
+
     except IOError as e:
         error_handling.report_generic_error("IO", str(e).capitalize())
     except Exception as e:

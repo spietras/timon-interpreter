@@ -1,5 +1,5 @@
 # timon-interpreter
-Python based interpreter for simple time oriented language
+Python based interpreter for simple time oriented language called Timon ⏰
 
 ## Requirements:
 - Python >= 3.6

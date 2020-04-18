@@ -5,8 +5,8 @@ Lexical analysis module
 """
 from abc import ABC, abstractmethod
 
-from . import tokens
-from . import error_handling
+from timoninterpreter import tokens
+from timoninterpreter import error_handling
 
 
 class BaseLexer(ABC):
@@ -177,10 +177,10 @@ class NumericalLiteralSubLexer(SubLexer):
         else:
             first_value = number_token.value
 
-        if next_character == '.':
+        if next_character == tokens.DATE_SEPARATOR:
             return self._get_date_or_datetime_token(first_value)
 
-        if next_character == ':':
+        if next_character == tokens.TIME_SEPARATOR:
             return self._get_hour_token(first_value)
 
         if next_character.isdigit():
@@ -216,13 +216,13 @@ class NumericalLiteralSubLexer(SubLexer):
         digits = self._get_two_digits()
         values.append(digits_to_int(digits))
 
-        self._check_for_character('.')
+        self._check_for_character(tokens.DATE_SEPARATOR)
 
         digits = self._get_four_digits()
         values.append(digits_to_int(digits))
 
         next_character = self.source_reader.peek()
-        if next_character != '~':
+        if next_character != tokens.DATETIME_SEPARATOR:
             try:
                 return tokens.Token(tokens.TokenType.DATE_LITERAL,
                                     self.start_line_num,
@@ -236,12 +236,12 @@ class NumericalLiteralSubLexer(SubLexer):
         digits = self._get_two_digits()
         values.append(digits_to_int(digits))
 
-        self._check_for_character(':')
+        self._check_for_character(tokens.TIME_SEPARATOR)
 
         digits = self._get_two_digits()
         values.append(digits_to_int(digits))
 
-        self._check_for_character(':')
+        self._check_for_character(tokens.TIME_SEPARATOR)
 
         digits = self._get_two_digits()
         values.append(digits_to_int(digits))
@@ -262,7 +262,7 @@ class NumericalLiteralSubLexer(SubLexer):
         digits = self._get_two_digits()
         values.append(digits_to_int(digits))
 
-        self._check_for_character(':')
+        self._check_for_character(tokens.TIME_SEPARATOR)
 
         digits = self._get_two_digits()
         values.append(digits_to_int(digits))

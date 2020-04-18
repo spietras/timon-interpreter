@@ -7,7 +7,7 @@ Module containing lexical tokens and related info
 from enum import Enum, auto
 from datetime import date, time
 
-from . import error_handling
+from timoninterpreter import error_handling
 
 
 class NoValueEnum(Enum):
@@ -69,6 +69,10 @@ COMMENT_BOUND = '#'
 STRING_BOUND = '"'
 TIMEDELTA_BOUND = "'"
 
+DATE_SEPARATOR = '.'
+TIME_SEPARATOR = ':'
+DATETIME_SEPARATOR = '~'
+
 ESCAPE = '\\'
 
 # Ambiguous characters, determining token after first and second character
@@ -119,6 +123,12 @@ keyword_token_type_map = {
 
 additional_identifier_characters = ['_']
 
+static_type_to_string_map = {}
+static_type_to_string_map.update({v: k for k, v in keyword_token_type_map.items()})
+static_type_to_string_map.update({v: k for k, v in unambiguous_singular_token_type_map.items()})
+static_type_to_string_map.update({v["first_case_token_type"]: k for k, v in ambiguous_binary_token_type_map.items()})
+static_type_to_string_map.update({v["second_case_token_type"]: k + v["second_character"] for k, v in ambiguous_binary_token_type_map.items()})
+
 
 class DateValue:
     def __init__(self, day, month, year):
@@ -141,6 +151,9 @@ class DateValue:
 
     def get_day(self):
         return self._date.day
+
+    def __str__(self):
+        return self._date.strftime("%d{0}%m{0}%Y".format(DATE_SEPARATOR))
 
 
 class TimeValue:
@@ -165,6 +178,9 @@ class TimeValue:
     def get_second(self):
         return self._time.second
 
+    def __str__(self):
+        return self._time.strftime("%H{0}%M{0}%S".format(TIME_SEPARATOR))
+
 
 class DateTimeValue(DateValue, TimeValue):
     def __init__(self, day, month, year, hour, minute, second):
@@ -176,6 +192,9 @@ class DateTimeValue(DateValue, TimeValue):
             return NotImplemented
 
         return DateValue.__eq__(self, other) and TimeValue.__eq__(self, other)
+
+    def __str__(self):
+        return DateValue.__str__(self) + DATETIME_SEPARATOR + TimeValue.__str__(self)
 
 
 class TimedeltaValue:
@@ -194,7 +213,7 @@ class TimedeltaValue:
         if value < 0:
             raise ValueError("Attribute {} can't be negative. Passed value was {}".format(attribute_name, value))
 
-        self.__setattr__(attribute_name, value)
+        setattr(self, attribute_name, value)
 
     def __eq__(self, other):
         if not isinstance(other, TimedeltaValue):
@@ -222,6 +241,28 @@ class TimedeltaValue:
 
     def get_seconds(self):
         return self._seconds
+
+    def _time_value_to_string(self, attribute_name):
+        abbreviations_map = {
+            "_years": "Y",
+            "_months": "M",
+            "_weeks": "W",
+            "_days": "D",
+            "_hours": "h",
+            "_minutes": "m",
+            "_seconds": "s"
+        }
+
+        return str(getattr(self, attribute_name)) + abbreviations_map[attribute_name]
+
+    def __str__(self):
+        return "{0}{1}{0}".format(TIMEDELTA_BOUND, ' '.join(self._time_value_to_string(a) for a in ['_years',
+                                                                                                    '_months',
+                                                                                                    '_weeks',
+                                                                                                    '_days',
+                                                                                                    '_hours',
+                                                                                                    '_minutes',
+                                                                                                    '_seconds']))
 
 
 token_value_valid_types_map = {
@@ -263,3 +304,15 @@ class Token:
         self.line_num = line_num
         self.line_pos = line_pos
         self.absolute_pos = absolute_pos
+
+    def __str__(self):
+        if self.type == TokenType.END:
+            return "END"
+
+        if self.type == TokenType.STRING_LITERAL:
+            return '{0}{1}{0}'.format(STRING_BOUND, self.value)
+
+        if self.value is None:
+            return static_type_to_string_map[self.type]
+
+        return str(self.value)

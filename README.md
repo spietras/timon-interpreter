@@ -12,18 +12,20 @@ Run from cmd from top directory:
 python3 -m timoninterpreter PATH_TO_SCRIPT
 ```
 
+Sample scripts can be found in ```tests/acceptance/scripts/```
+
 ## Tests
 
-Running acceptance tests:
+Running acceptance tests (with sample scripts):
 
 ```
-python3 -m unittest tests/acceptance
+python3 -m unittest discover tests/acceptance
 ```
 
 Running unit tests:
 
 ```
-python3 -m unittest tests/unit
+python3 -m unittest discover tests/unit
 ```
 
 ## Grammar

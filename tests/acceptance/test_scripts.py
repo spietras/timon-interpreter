@@ -1,8 +1,13 @@
 import unittest
+import os
 
 from timoninterpreter.source_readers import FileReader
 from timoninterpreter.lexical_analysis import Lexer
 from timoninterpreter import tokens
+
+
+def get_path(path):
+    return os.path.join(os.path.dirname(__file__), path)
 
 
 class ScriptsTokensTestCase(unittest.TestCase):
@@ -23,7 +28,7 @@ class ScriptsTokensTestCase(unittest.TestCase):
             self.assertEqual(expected_value, token.value, msg="Value mismatch for token number {}".format(i))
 
     def test_script1(self):
-        read_tokens = self.get_all_tokens("scripts/script1.tim")
+        read_tokens = self.get_all_tokens(get_path('scripts/script1.tim'))
 
         expected_tokens = [(tokens.TokenType.FUN,                    None),
                            (tokens.TokenType.IDENTIFIER,             "printDaysBetweenDates"),
@@ -74,7 +79,7 @@ class ScriptsTokensTestCase(unittest.TestCase):
         self.assert_tokens(expected_tokens, read_tokens)
 
     def test_script2(self):
-        read_tokens = self.get_all_tokens("scripts/script2.tim")
+        read_tokens = self.get_all_tokens(get_path('scripts/script2.tim'))
 
         expected_tokens = [(tokens.TokenType.VAR,                    None),
                            (tokens.TokenType.IDENTIFIER,             "start_time"),
@@ -124,7 +129,7 @@ class ScriptsTokensTestCase(unittest.TestCase):
         self.assert_tokens(expected_tokens, read_tokens)
 
     def test_script3(self):
-        read_tokens = self.get_all_tokens("scripts/script3.tim")
+        read_tokens = self.get_all_tokens(get_path('scripts/script3.tim'))
 
         expected_tokens = [(tokens.TokenType.VAR,                    None),
                            (tokens.TokenType.IDENTIFIER,             "t1"),

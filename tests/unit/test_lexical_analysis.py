@@ -1,12 +1,12 @@
+import io
 import unittest
 import unittest.mock as mock
-import io
 
-from timoninterpreter.source_readers import FileReader
-from timoninterpreter import lexical_analysis
-from timoninterpreter.lexical_analysis import Lexer
-from timoninterpreter import tokens
 from timoninterpreter import error_handling
+from timoninterpreter import lexical_analysis
+from timoninterpreter import tokens
+from timoninterpreter.lexical_analysis import Lexer
+from timoninterpreter.source_readers import FileReader
 
 
 class BaseLexerTestCase(unittest.TestCase):
@@ -199,7 +199,8 @@ class LexerIdentifierTestCase(BaseLexerTestCase):
         self.assert_token(tokens.TokenType.IDENTIFIER, "ifif")
 
     @mock.patch('timoninterpreter.error_handling.report_lexical_error')
-    @mock.patch('builtins.open', return_value=io.StringIO('x' * (lexical_analysis.IdentifierSubLexer.MAX_IDENTIFIER_LENGTH + 1)))
+    @mock.patch('builtins.open',
+                return_value=io.StringIO('x' * (lexical_analysis.IdentifierSubLexer.MAX_IDENTIFIER_LENGTH + 1)))
     def test_get_identifier_too_long(self, mock_report, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
@@ -217,7 +218,8 @@ class LexerNumberLiteralTestCase(BaseLexerTestCase):
         self.assert_token(tokens.TokenType.NUMBER_LITERAL, 0)
 
     @mock.patch('timoninterpreter.error_handling.report_lexical_error')
-    @mock.patch('builtins.open', return_value=io.StringIO('x' * (lexical_analysis.NumberLiteralSubLexer.MAX_NUMBER_LITERAL_LENGTH + 1)))
+    @mock.patch('builtins.open',
+                return_value=io.StringIO('x' * (lexical_analysis.NumberLiteralSubLexer.MAX_NUMBER_LITERAL_LENGTH + 1)))
     def test_get_number_literal_too_long(self, mock_report, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
@@ -409,7 +411,8 @@ class LexerTimedeltaLiteralTestCase(BaseLexerTestCase):
             self.assertTrue(mock_report.called)
 
     @mock.patch('timoninterpreter.error_handling.report_lexical_error')
-    @mock.patch('builtins.open', return_value=io.StringIO("'" + '1' * (lexical_analysis.TimedeltaLiteralSubLexer.MAX_TIMEDELTA_LITERAL_LENGTH + 1) + "Y'"))
+    @mock.patch('builtins.open', return_value=io.StringIO(
+        "'" + '1' * (lexical_analysis.TimedeltaLiteralSubLexer.MAX_TIMEDELTA_LITERAL_LENGTH + 1) + "Y'"))
     def test_get_timedelta_literal_too_long(self, mock_report, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
@@ -437,11 +440,18 @@ class LexerStringLiteralTestCase(BaseLexerTestCase):
         self.assert_token(tokens.TokenType.STRING_LITERAL, "abcreturnabc")
 
     @mock.patch('timoninterpreter.error_handling.report_lexical_error')
-    @mock.patch('builtins.open', return_value=io.StringIO('"' + 'x' * (lexical_analysis.StringLiteralSubLexer.MAX_STRING_LITERAL_LENGTH + 1) + '"'))
+    @mock.patch('builtins.open', return_value=io.StringIO(
+        '"' + 'x' * (lexical_analysis.StringLiteralSubLexer.MAX_STRING_LITERAL_LENGTH + 1) + '"'))
     def test_get_string_literal_too_long(self, mock_report, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
             self.assertTrue(mock_report.called)
+
+    @mock.patch('timoninterpreter.error_handling.report_lexical_warning')
+    @mock.patch('builtins.open', return_value=io.StringIO('"abc'))
+    def test_get_string_literal_unclosed(self, mock_report, mock_open):
+        self.assert_token(tokens.TokenType.STRING_LITERAL, "abc")
+        self.assertTrue(mock_report.called)
 
 
 # noinspection PyUnusedLocal

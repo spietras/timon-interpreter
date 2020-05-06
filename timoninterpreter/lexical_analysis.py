@@ -5,8 +5,8 @@ Lexical analysis module
 """
 from abc import ABC, abstractmethod
 
-from timoninterpreter import tokens
 from timoninterpreter import error_handling
+from timoninterpreter import tokens
 
 
 class BaseLexer(ABC):
@@ -110,7 +110,8 @@ class IdentifierSubLexer(SubLexer):
         while is_identifier_middle(next_character):
             counter += 1
             if counter > self.MAX_IDENTIFIER_LENGTH:
-                self.make_error("Identifier is too long. Maximum size is {} characters".format(self.MAX_IDENTIFIER_LENGTH))
+                self.make_error(
+                    "Identifier is too long. Maximum size is {} characters".format(self.MAX_IDENTIFIER_LENGTH))
 
             identifier += self.source_reader.get()
             next_character = self.source_reader.peek()
@@ -132,13 +133,29 @@ def digits_to_int(digit_list):
     return int(''.join(str(i) for i in digit_list))
 
 
+class NumberScraper:
+    def __init__(self):
+        self._number = None
+
+    def __iadd__(self, number_char):
+        if self._number is None:
+            self._number = int(number_char)
+        else:
+            self._number = self._number * 10 + int(number_char)
+        return self
+
+    def get_number(self):
+        return self._number
+
+
 class NumberLiteralSubLexer(SubLexer):
     MAX_NUMBER_LITERAL_LENGTH = 256
 
     def get(self):
-        number_string = self.source_reader.get()
+        ns = NumberScraper()
+        ns += self.source_reader.get()
 
-        if number_string == '0':
+        if ns.get_number() == 0:
             return tokens.Token(tokens.TokenType.NUMBER_LITERAL,
                                 self.start_line_num,
                                 self.start_line_pos,
@@ -151,15 +168,16 @@ class NumberLiteralSubLexer(SubLexer):
         while next_character.isdigit():
             counter += 1
             if counter > self.MAX_NUMBER_LITERAL_LENGTH:
-                self.make_error("Digit is too long. Maximum size is {} characters".format(self.MAX_NUMBER_LITERAL_LENGTH))
-            number_string += self.source_reader.get()
+                self.make_error(
+                    "Digit is too long. Maximum size is {} characters".format(self.MAX_NUMBER_LITERAL_LENGTH))
+            ns += self.source_reader.get()
             next_character = self.source_reader.peek()
 
         return tokens.Token(tokens.TokenType.NUMBER_LITERAL,
                             self.start_line_num,
                             self.start_line_pos,
                             self.start_absolute_pos,
-                            digits_to_int(number_string))
+                            ns.get_number())
 
 
 class NumericalLiteralSubLexer(SubLexer):
@@ -290,11 +308,21 @@ class StringLiteralSubLexer(SubLexer):
         while not is_string_literal_bound(next_character):
             counter += 1
             if counter > self.MAX_STRING_LITERAL_LENGTH:
-                self.make_error("String literal is too long. Maximum size is {} characters (excluding bounds and escapes)".format(self.MAX_STRING_LITERAL_LENGTH))
+                self.make_error(
+                    "String literal is too long. Maximum size is {} characters (excluding bounds and escapes)".format(
+                        self.MAX_STRING_LITERAL_LENGTH))
             if is_escape(next_character):
                 self.source_reader.get()
             string_value += self.source_reader.get()
             next_character = self.source_reader.peek()
+            if self.source_reader.ended():
+                error_handling.report_lexical_warning(self.start_line_num,
+                                                      self.start_line_pos,
+                                                      self.start_absolute_pos,
+                                                      self.source_reader,
+                                                      "File ended before end of string bounds",
+                                                      "Ignoring")
+                next_character = tokens.STRING_BOUND
 
         self.source_reader.get()
 
@@ -306,7 +334,7 @@ class StringLiteralSubLexer(SubLexer):
 
 
 class TimedeltaLiteralSubLexer(SubLexer):
-    MAX_TIMEDELTA_LITERAL_LENGTH = 7*256
+    MAX_TIMEDELTA_LITERAL_LENGTH = 7 * 256
 
     def get(self):
         self.source_reader.get()
@@ -327,7 +355,9 @@ class TimedeltaLiteralSubLexer(SubLexer):
         while not is_timedelta_literal_bound(next_character):
             counter += 1
             if counter > self.MAX_TIMEDELTA_LITERAL_LENGTH:
-                self.make_error("Timedelta literal is too long. Maximum size is {} characters (excluding bounds)".format(self.MAX_TIMEDELTA_LITERAL_LENGTH))
+                self.make_error(
+                    "Timedelta literal is too long. Maximum size is {} characters (excluding bounds)".format(
+                        self.MAX_TIMEDELTA_LITERAL_LENGTH))
             if next_character.isdigit():
                 number_value = NumberLiteralSubLexer(self.source_reader).get().value
 
@@ -376,11 +406,14 @@ class AmbiguousBinarySubLexer(SubLexer):
         first_character = self.source_reader.get()  # get first
         second_character = self.source_reader.peek()  # peek second
 
-        if second_character == tokens.ambiguous_binary_token_type_map[first_character]['second_character']:  # if first+second is known
+        if second_character == tokens.ambiguous_binary_token_type_map[first_character][
+            'second_character']:  # if first+second is known
             self.source_reader.get()  # consume second
-            token_type = tokens.ambiguous_binary_token_type_map[first_character]['second_case_token_type']  # lookup first+second
+            token_type = tokens.ambiguous_binary_token_type_map[first_character][
+                'second_case_token_type']  # lookup first+second
         else:
-            token_type = tokens.ambiguous_binary_token_type_map[first_character]['first_case_token_type']  # lookup first
+            token_type = tokens.ambiguous_binary_token_type_map[first_character][
+                'first_case_token_type']  # lookup first
 
         return tokens.Token(token_type,
                             self.start_line_num,
@@ -432,7 +465,8 @@ class Lexer(BaseLexer):
 
         while is_skippable(character):
             if counter >= self.MAX_SKIPPABLE_CHARACTERS_LENGTH:  # >= because we increase counter later
-                message = "Too many skippable characters. Maximum size is {} characters".format(self.MAX_SKIPPABLE_CHARACTERS_LENGTH)
+                message = "Too many skippable characters. Maximum size is {} characters".format(
+                    self.MAX_SKIPPABLE_CHARACTERS_LENGTH)
                 error_handling.report_lexical_error(start_line_num,
                                                     start_line_pos,
                                                     start_absolute_pos,
@@ -461,7 +495,8 @@ class Lexer(BaseLexer):
         while not is_comment_bound(character):
             counter += 1
             if counter > self.MAX_COMMENT_LENGTH:
-                message = "Comment is too long. Maximum size is {} characters (excluding bounds)".format(self.MAX_COMMENT_LENGTH)
+                message = "Comment is too long. Maximum size is {} characters (excluding bounds)".format(
+                    self.MAX_COMMENT_LENGTH)
                 error_handling.report_lexical_error(start_line_num,
                                                     start_line_pos,
                                                     start_absolute_pos,
@@ -488,7 +523,7 @@ class Lexer(BaseLexer):
             return tokens.Token(tokens.TokenType.END,
                                 self.source_reader.line_num,
                                 self.source_reader.line_pos,
-                                self.source_reader.absolute_pos,)
+                                self.source_reader.absolute_pos, )
 
         if is_identifier_start(first_character):
             return IdentifierSubLexer(self.source_reader).get()

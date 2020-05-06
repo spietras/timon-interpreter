@@ -5,32 +5,57 @@ Source stream readers
 """
 
 import os
+import copy
+
+
+class FilePosition:
+    def __init__(self):
+        self._line_num = 1
+        self._line_pos = 0
+        self._absolute_pos = 0
+
+    def advance(self, characters):
+        for character in characters:
+            self._absolute_pos += 1
+            self._line_pos += 1
+            if character == '\n':
+                self._line_num += 1
+                self._line_pos = 0
+
+    def get_line_num(self):
+        return self._line_num
+
+    def get_line_pos(self):
+        return self._line_pos
+
+    def get_absolute_pos(self):
+        return self._absolute_pos
+
+    def __eq__(self, other):
+        if not isinstance(other, FilePosition):
+            return NotImplemented
+
+        return self._line_num == other._line_num and self._line_pos == other._line_pos and self._absolute_pos == other._absolute_pos
 
 
 class FileReader:
     """
     Class for reading files
-
-    Attributes:
-        file_path: path to the file
-        line_num: current line of the file
-        line_pos: current position in line
-        absolute_pos: current absolute position in file
     """
 
     def __init__(self, file_path):
-        self.file_path = file_path
+        self._file_path = file_path
         self._file = None
-        self.line_num = 1
-        self.line_pos = 0
-        self.absolute_pos = 0
+        self._file_pos = FilePosition()
+        self._backward_checkpoint = None
+        self._forward_checkpoint = None
 
     def open(self):
         """
         Opens the file
         """
 
-        self._file = open(self.file_path, "rt")
+        self._file = open(self._file_path, "rt")
 
     def close(self):
         """
@@ -84,7 +109,7 @@ class FileReader:
 
         characters = self._file.read(n)
         if characters:
-            self._advance_positions(characters)
+            self._file_pos.advance(characters)
         return characters
 
     def ended(self):
@@ -103,13 +128,33 @@ class FileReader:
 
         return self._file is not None
 
-    def _advance_positions(self, characters):
-        for character in characters:
-            self.absolute_pos += 1
-            self.line_pos += 1
-            if character == '\n':
-                self.line_num += 1
-                self.line_pos = 0
+    def checkpoint(self):
+        """
+        Creates position checkpoint that reader can be rewinded to
+        """
+        self._backward_checkpoint = copy.deepcopy(self._file_pos)
+
+    def rewind_backward(self):
+        """
+        Rewinds to previous backward checkpoint (if exists) and sets forward checkpoint (as current position)
+        """
+        if self._backward_checkpoint is not None:
+            self._forward_checkpoint = copy.deepcopy(self._file_pos)
+            self._file_pos = copy.deepcopy(self._backward_checkpoint)
+
+    def rewind_forward(self):
+        """
+        Rewinds to previous forward checkpoint (if exists) and resets forward checkpoint to None
+        """
+        if self._forward_checkpoint is not None:
+            self._file_pos = copy.deepcopy(self._forward_checkpoint)
+            self._forward_checkpoint = None
+
+    def get_file_path(self):
+        return copy.deepcopy(self._file_path)
+
+    def get_file_pos(self):
+        return copy.deepcopy(self._file_pos)
 
     def __enter__(self):
         self.open()

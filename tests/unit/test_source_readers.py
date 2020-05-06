@@ -146,25 +146,71 @@ class FileReaderPositionsTestCase(unittest.TestCase):
 
     def test_positions_in_line(self):
         self.file_reader.get(11)
-        self.assertEqual(4, self.file_reader.line_num)
-        self.assertEqual(5, self.file_reader.line_pos)
-        self.assertEqual(11, self.file_reader.absolute_pos)
+        self.assertEqual(4, self.file_reader.get_file_pos().get_line_num())
+        self.assertEqual(5, self.file_reader.get_file_pos().get_line_pos())
+        self.assertEqual(11, self.file_reader.get_file_pos().get_absolute_pos())
 
     def test_positions_not_advance_at_end(self):
         self.file_reader.get(17)
-        self.assertEqual(4, self.file_reader.line_num)
-        self.assertEqual(11, self.file_reader.line_pos)
-        self.assertEqual(17, self.file_reader.absolute_pos)
+        self.assertEqual(4, self.file_reader.get_file_pos().get_line_num())
+        self.assertEqual(11, self.file_reader.get_file_pos().get_line_pos())
+        self.assertEqual(17, self.file_reader.get_file_pos().get_absolute_pos())
 
         self.file_reader.get()
 
-        self.assertEqual(4, self.file_reader.line_num)
-        self.assertEqual(11, self.file_reader.line_pos)
-        self.assertEqual(17, self.file_reader.absolute_pos)
+        self.assertEqual(4, self.file_reader.get_file_pos().get_line_num())
+        self.assertEqual(11, self.file_reader.get_file_pos().get_line_pos())
+        self.assertEqual(17, self.file_reader.get_file_pos().get_absolute_pos())
 
     def tearDown(self):
         self.file_reader.close()
 
+class FileReaderRewindTestCase(unittest.TestCase):
+    def setUp(self):
+        self.mock_open = make_mock_open(self, 'aaaaaaaaaaaa')
+
+        self.file_reader = FileReader("whatever")
+        self.file_reader.open()
+
+    def test_rewind_backward(self):
+        self.file_reader.get()
+        self.file_reader.checkpoint()
+        self.file_reader.get(3)
+        self.file_reader.rewind_backward()
+
+        self.assertEqual(1, self.file_reader.get_file_pos().get_line_num())
+        self.assertEqual(1, self.file_reader.get_file_pos().get_line_pos())
+        self.assertEqual(1, self.file_reader.get_file_pos().get_absolute_pos())
+
+    def test_rewind_forward(self):
+        self.file_reader.get()
+        self.file_reader.checkpoint()
+        self.file_reader.get(3)
+        self.file_reader.rewind_backward()
+        self.file_reader.rewind_forward()
+
+        self.assertEqual(1, self.file_reader.get_file_pos().get_line_num())
+        self.assertEqual(4, self.file_reader.get_file_pos().get_line_pos())
+        self.assertEqual(4, self.file_reader.get_file_pos().get_absolute_pos())
+
+    def test_rewind_backward_without_checkpoint(self):
+        self.file_reader.get()
+        self.file_reader.rewind_backward()
+
+        self.assertEqual(1, self.file_reader.get_file_pos().get_line_num())
+        self.assertEqual(1, self.file_reader.get_file_pos().get_line_pos())
+        self.assertEqual(1, self.file_reader.get_file_pos().get_absolute_pos())
+
+    def test_rewind_forward_without_checkpoint(self):
+        self.file_reader.get()
+        self.file_reader.rewind_forward()
+
+        self.assertEqual(1, self.file_reader.get_file_pos().get_line_num())
+        self.assertEqual(1, self.file_reader.get_file_pos().get_line_pos())
+        self.assertEqual(1, self.file_reader.get_file_pos().get_absolute_pos())
+
+    def tearDown(self):
+        self.file_reader.close()
 
 class FileReaderWithTestCase(unittest.TestCase):
     def setUp(self):

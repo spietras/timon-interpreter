@@ -531,3 +531,28 @@ class LexerMiscellaneousTestCase(BaseLexerTestCase):
             self.assertEqual(4, token.line_num)
             self.assertEqual(7, token.line_pos)
             self.assertEqual(12, token.absolute_pos)
+
+
+# noinspection PyUnusedLocal
+class LexerPeekTestCase(BaseLexerTestCase):
+    @mock.patch('builtins.open', return_value=io.StringIO(" a b c "))
+    def test_peek_and_get(self, mock_open):
+        with FileReader("whatever") as fr:
+            lex = Lexer(fr)
+            token = lex.peek()
+            self.assertEqual(tokens.TokenType.IDENTIFIER, token.type)
+            self.assertEqual('a', token.value)
+            token = lex.get()
+            self.assertEqual(tokens.TokenType.IDENTIFIER, token.type)
+            self.assertEqual('a', token.value)
+
+    @mock.patch('builtins.open', return_value=io.StringIO(" a b c "))
+    def test_peek_multiple_times(self, mock_open):
+        with FileReader("whatever") as fr:
+            lex = Lexer(fr)
+            token = lex.peek()
+            self.assertEqual(tokens.TokenType.IDENTIFIER, token.type)
+            self.assertEqual('a', token.value)
+            token = lex.peek()
+            self.assertEqual(tokens.TokenType.IDENTIFIER, token.type)
+            self.assertEqual('a', token.value)

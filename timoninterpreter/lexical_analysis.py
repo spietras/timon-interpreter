@@ -85,9 +85,9 @@ def is_keyword(string):
 class SubLexer(BaseLexer, ABC):
     def __init__(self, source_reader):
         super().__init__(source_reader)
-        self.start_line_num = self.source_reader.line_num
-        self.start_line_pos = self.source_reader.line_pos
-        self.start_absolute_pos = self.source_reader.absolute_pos
+        self.start_line_num = self.source_reader.get_file_pos().get_line_num()
+        self.start_line_pos = self.source_reader.get_file_pos().get_line_pos()
+        self.start_absolute_pos = self.source_reader.get_file_pos().get_absolute_pos()
 
     def make_error(self, message):
         error_handling.report_lexical_error(self.start_line_num,
@@ -133,7 +133,7 @@ def digits_to_int(digit_list):
     return int(''.join(str(i) for i in digit_list))
 
 
-class NumberScraper:
+class NumberBuilder:
     def __init__(self):
         self._number = None
 
@@ -152,10 +152,10 @@ class NumberLiteralSubLexer(SubLexer):
     MAX_NUMBER_LITERAL_LENGTH = 256
 
     def get(self):
-        ns = NumberScraper()
-        ns += self.source_reader.get()
+        nb = NumberBuilder()
+        nb += self.source_reader.get()
 
-        if ns.get_number() == 0:
+        if nb.get_number() == 0:
             return tokens.Token(tokens.TokenType.NUMBER_LITERAL,
                                 self.start_line_num,
                                 self.start_line_pos,
@@ -170,14 +170,14 @@ class NumberLiteralSubLexer(SubLexer):
             if counter > self.MAX_NUMBER_LITERAL_LENGTH:
                 self.make_error(
                     "Digit is too long. Maximum size is {} characters".format(self.MAX_NUMBER_LITERAL_LENGTH))
-            ns += self.source_reader.get()
+            nb += self.source_reader.get()
             next_character = self.source_reader.peek()
 
         return tokens.Token(tokens.TokenType.NUMBER_LITERAL,
                             self.start_line_num,
                             self.start_line_pos,
                             self.start_absolute_pos,
-                            ns.get_number())
+                            nb.get_number())
 
 
 class NumericalLiteralSubLexer(SubLexer):
@@ -439,6 +439,28 @@ class Lexer(BaseLexer):
     MAX_SKIPPABLE_CHARACTERS_LENGTH = 65536
     MAX_COMMENT_LENGTH = 16384
 
+    def __init__(self, source_reader):
+        super().__init__(source_reader)
+        self._cached_token = None
+
+    def peek(self):
+        """
+        Get next token without consuming it
+
+        Returns:
+            next token
+
+        Raises:
+            LexicalError when input can't be processed into token
+        """
+        if self._cached_token is not None:
+            return self._cached_token
+
+        self.source_reader.checkpoint()
+        self._cached_token = self.get()
+        self.source_reader.rewind_backward()
+        return self._cached_token
+
     def get(self):
         """
         Get next token and consume it
@@ -449,6 +471,10 @@ class Lexer(BaseLexer):
         Raises:
             LexicalError when input can't be processed into token
         """
+        if self._cached_token is not None:
+            self.source_reader.rewind_forward()
+            token, self._cached_token = self._cached_token, None
+            return token
 
         if is_skippable(self.source_reader.peek()):
             self._skip_to_unskippable()
@@ -456,9 +482,9 @@ class Lexer(BaseLexer):
         return self._tokenize()
 
     def _skip_to_unskippable(self):
-        start_line_num, start_line_pos, start_absolute_pos = (self.source_reader.line_num,
-                                                              self.source_reader.line_pos,
-                                                              self.source_reader.absolute_pos)
+        start_line_num, start_line_pos, start_absolute_pos = (self.source_reader.get_file_pos().get_line_num(),
+                                                              self.source_reader.get_file_pos().get_line_pos(),
+                                                              self.source_reader.get_file_pos().get_absolute_pos())
         character = self.source_reader.peek()
 
         counter = 0
@@ -483,9 +509,9 @@ class Lexer(BaseLexer):
             character = self.source_reader.peek()
 
     def _skip_comment(self):
-        start_line_num, start_line_pos, start_absolute_pos = (self.source_reader.line_num,
-                                                              self.source_reader.line_pos,
-                                                              self.source_reader.absolute_pos)
+        start_line_num, start_line_pos, start_absolute_pos = (self.source_reader.get_file_pos().get_line_num(),
+                                                              self.source_reader.get_file_pos().get_line_pos(),
+                                                              self.source_reader.get_file_pos().get_absolute_pos())
 
         self.source_reader.get()  # consume opening comment bound
 
@@ -521,9 +547,9 @@ class Lexer(BaseLexer):
 
         if self.source_reader.ended():
             return tokens.Token(tokens.TokenType.END,
-                                self.source_reader.line_num,
-                                self.source_reader.line_pos,
-                                self.source_reader.absolute_pos, )
+                                self.source_reader.get_file_pos().get_line_num(),
+                                self.source_reader.get_file_pos().get_line_pos(),
+                                self.source_reader.get_file_pos().get_absolute_pos(), )
 
         if is_identifier_start(first_character):
             return IdentifierSubLexer(self.source_reader).get()
@@ -544,9 +570,9 @@ class Lexer(BaseLexer):
             return UnambiguousSingularSubLexer(self.source_reader).get()
 
         message = "Unexpected character, not recognizable by any rule"
-        error_handling.report_lexical_error(self.source_reader.line_num,
-                                            self.source_reader.line_pos,
-                                            self.source_reader.absolute_pos,
+        error_handling.report_lexical_error(self.source_reader.get_file_pos().get_line_num(),
+                                            self.source_reader.get_file_pos().get_line_pos(),
+                                            self.source_reader.get_file_pos().get_absolute_pos(),
                                             self.source_reader,
                                             message)
         raise error_handling.LexicalError(message)

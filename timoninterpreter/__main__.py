@@ -8,11 +8,42 @@ import argparse
 
 from timoninterpreter.source_readers import FileReader
 from timoninterpreter.lexical_analysis import Lexer
+from timoninterpreter.syntax_analysis import Program
+from timoninterpreter.syntax_analysis import LeafNode
 from timoninterpreter import tokens
 from timoninterpreter import error_handling
 
 
-def run(path):
+def display_tokens(token_list):
+    format_string = "{:<50} | {:<30} | {:<15} | {:<15} | {:<20}"
+    print(format_string.format("token", "type", "line number", "line position", "absolute position"))
+    for token in token_list:
+        print(format_string.format(str(token)[:50], token.type, token.line_num, token.line_pos, token.absolute_pos))
+
+
+def display_syntax_tree(root_node):
+    def tree(node, prefix=""):
+        # prefix components:
+        space = '    '
+        branch = '│   '
+        # pointers:
+        tee = '├── '
+        last = '└── '
+
+        pointers = [tee] * (len(node.children) - 1) + [last]
+        for pointer, child in zip(pointers, node.children):
+            suffix = " : " + str(child.token) if isinstance(child, LeafNode) else ""
+            yield prefix + pointer + type(child).__name__ + suffix
+            if child.children:
+                extension = branch if pointer == tee else space
+                yield from tree(child, prefix=prefix+extension)
+
+    print(type(root_node).__name__)
+    for line in tree(root_node):
+        print(line)
+
+
+def run_lexer(path):
     try:
         read_tokens = []
 
@@ -21,10 +52,21 @@ def run(path):
             while not (read_tokens and read_tokens[-1].type == tokens.TokenType.END):
                 read_tokens.append(lex.get())
 
-        format_string = "{:<50} | {:<30} | {:<15} | {:<15} | {:<20}"
-        print(format_string.format("token", "type", "line number", "line position", "absolute position"))
-        for token in read_tokens:
-            print(format_string.format(str(token)[:50], token.type, token.line_num, token.line_pos, token.absolute_pos))
+        display_tokens(read_tokens)
+
+    except IOError as e:
+        error_handling.report_generic_error("IO", str(e).capitalize())
+    except Exception as e:
+        error_handling.report_generic_error("Unknown", str(e).capitalize())
+
+
+def run_parser(path):
+    try:
+        with FileReader(path) as fr:
+            lex = Lexer(fr)
+            program = Program(lex)
+
+        display_syntax_tree(program)
 
     except IOError as e:
         error_handling.report_generic_error("IO", str(e).capitalize())
@@ -38,4 +80,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    run(args.path)
+    run_parser(args.path)

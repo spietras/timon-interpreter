@@ -7,8 +7,6 @@ Module containing lexical tokens and related info
 from enum import Enum, auto
 from datetime import date, time
 
-from timoninterpreter import error_handling
-
 
 class NoValueEnum(Enum):
     def __repr__(self):
@@ -135,7 +133,7 @@ class DateValue:
         try:
             self._date = date(year, month, day)
         except ValueError as e:
-            raise error_handling.LexicalError("{}. Passed values were: year={}, month={}, day={}".format(str(e).capitalize(), year, month, day))
+            raise ValueError("{}. Passed values were: year={}, month={}, day={}".format(str(e).capitalize(), year, month, day))
 
     def __eq__(self, other):
         if not isinstance(other, DateValue):
@@ -161,7 +159,7 @@ class TimeValue:
         try:
             self._time = time(hour, minute, second)
         except ValueError as e:
-            raise error_handling.LexicalError("{}. Passed values were: hour={}, minute={}, second={}".format(str(e).capitalize(), hour, minute, second))
+            raise ValueError("{}. Passed values were: hour={}, minute={}, second={}".format(str(e).capitalize(), hour, minute, second))
 
     def __eq__(self, other):
         if not isinstance(other, TimeValue):

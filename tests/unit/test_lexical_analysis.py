@@ -198,13 +198,11 @@ class LexerIdentifierTestCase(BaseLexerTestCase):
     def test_get_identifier_multiple_keywords(self, mock_open):
         self.assert_token(tokens.TokenType.IDENTIFIER, "ifif")
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open',
                 return_value=io.StringIO('x' * (lexical_analysis.IdentifierSubLexer.MAX_IDENTIFIER_LENGTH + 1)))
-    def test_get_identifier_too_long(self, mock_report, mock_open):
+    def test_get_identifier_too_long(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
 
 # noinspection PyUnusedLocal
@@ -217,13 +215,11 @@ class LexerNumberLiteralTestCase(BaseLexerTestCase):
     def test_get_number_literal_zero_at_beginning(self, mock_open):
         self.assert_token(tokens.TokenType.NUMBER_LITERAL, 0)
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open',
                 return_value=io.StringIO('x' * (lexical_analysis.NumberLiteralSubLexer.MAX_NUMBER_LITERAL_LENGTH + 1)))
-    def test_get_number_literal_too_long(self, mock_report, mock_open):
+    def test_get_number_literal_too_long(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
 
 # noinspection PyUnusedLocal
@@ -232,72 +228,54 @@ class LexerDateLiteralTestCase(BaseLexerTestCase):
     def test_get_date_literal(self, mock_open):
         self.assert_token(tokens.TokenType.DATE_LITERAL, tokens.DateValue(1, 1, 2020))
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO("01.01;"))
-    def test_get_date_literal_unfinished(self, mock_report, mock_open):
+    def test_get_date_literal_unfinished(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO("010.03.2015"))
-    def test_get_date_literal_too_many_digits_day(self, mock_report, mock_open):
+    def test_get_date_literal_too_many_digits_day(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO("01.010.2015"))
-    def test_get_date_literal_too_many_digits_month(self, mock_report, mock_open):
+    def test_get_date_literal_too_many_digits_month(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
     @mock.patch('builtins.open', return_value=io.StringIO("01.01.20200"))
     def test_get_date_literal_digits_follow_year(self, mock_open):
         self.assert_token(tokens.TokenType.DATE_LITERAL, tokens.DateValue(1, 1, 2020))
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO("35.10.2015"))
-    def test_get_date_illegal_day(self, mock_report, mock_open):
+    def test_get_date_illegal_day(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO("31.04.2020"))
-    def test_get_date_illegal_day_of_month(self, mock_report, mock_open):
+    def test_get_date_illegal_day_of_month(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO("30.02.2020"))
-    def test_get_date_illegal_day_january(self, mock_report, mock_open):
+    def test_get_date_illegal_day_january(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO("29.02.2019"))
-    def test_get_date_illegal_day_january_not_leap_year(self, mock_report, mock_open):
+    def test_get_date_illegal_day_january_not_leap_year(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO("01.13.2020"))
-    def test_get_date_illegal_month(self, mock_report, mock_open):
+    def test_get_date_illegal_month(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO("01.01.0000"))
-    def test_get_date_illegal_year(self, mock_report, mock_open):
+    def test_get_date_illegal_year(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
 
 # noinspection PyUnusedLocal
@@ -306,51 +284,39 @@ class LexerHourLiteralTestCase(BaseLexerTestCase):
     def test_get_hour_literal(self, mock_open):
         self.assert_token(tokens.TokenType.TIME_LITERAL, tokens.TimeValue(20, 0, 0))
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO("20:20;"))
-    def test_get_hour_literal_unfinished(self, mock_report, mock_open):
+    def test_get_hour_literal_unfinished(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO("020:00:00"))
-    def test_get_hour_literal_too_many_digits_hour(self, mock_report, mock_open):
+    def test_get_hour_literal_too_many_digits_hour(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO("20:000:00"))
-    def test_get_hour_literal_too_many_digits_minute(self, mock_report, mock_open):
+    def test_get_hour_literal_too_many_digits_minute(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
     @mock.patch('builtins.open', return_value=io.StringIO("20:00:001"))
     def test_get_hour_literal_digits_follow_second(self, mock_open):
         self.assert_token(tokens.TokenType.TIME_LITERAL, tokens.TimeValue(20, 0, 0))
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO("25:00:00"))
-    def test_get_hour_illegal_hour(self, mock_report, mock_open):
+    def test_get_hour_illegal_hour(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO("20:60:00"))
-    def test_get_hour_illegal_minute(self, mock_report, mock_open):
+    def test_get_hour_illegal_minute(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO("20:00:60"))
-    def test_get_hour_illegal_second(self, mock_report, mock_open):
+    def test_get_hour_illegal_second(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
 
 # noinspection PyUnusedLocal
@@ -359,12 +325,10 @@ class LexerDateTimeLiteralTestCase(BaseLexerTestCase):
     def test_get_datetime_literal(self, mock_open):
         self.assert_token(tokens.TokenType.DATETIME_LITERAL, tokens.DateTimeValue(1, 1, 2020, 20, 0, 0))
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO("01.01.2020~;"))
-    def test_get_datetime_literal_unfinished(self, mock_report, mock_open):
+    def test_get_datetime_literal_unfinished(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
 
 # noinspection PyUnusedLocal
@@ -389,34 +353,26 @@ class LexerTimedeltaLiteralTestCase(BaseLexerTestCase):
     def test_get_timedelta_literal_empty_with_whitespaces(self, mock_open):
         self.assert_token(tokens.TokenType.TIMEDELTA_LITERAL, tokens.TimedeltaValue())
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO("'1Y 2M 3W abcdef'"))
-    def test_get_timedelta_literal_illegal_characters(self, mock_report, mock_open):
+    def test_get_timedelta_literal_illegal_characters(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO("'1Y 2M 5M 6D'"))
-    def test_get_timedelta_literal_duplicated_unit(self, mock_report, mock_open):
+    def test_get_timedelta_literal_duplicated_unit(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO("'1Y 6M 00001h'"))
-    def test_get_timedelta_literal_bad_number(self, mock_report, mock_open):
+    def test_get_timedelta_literal_bad_number(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO(
         "'" + '1' * (lexical_analysis.TimedeltaLiteralSubLexer.MAX_TIMEDELTA_LITERAL_LENGTH + 1) + "Y'"))
-    def test_get_timedelta_literal_too_long(self, mock_report, mock_open):
+    def test_get_timedelta_literal_too_long(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
     @mock.patch('timoninterpreter.error_handling.report_lexical_warning')
     @mock.patch('builtins.open', return_value=io.StringIO("'1Y 1M "))
@@ -439,13 +395,11 @@ class LexerStringLiteralTestCase(BaseLexerTestCase):
     def test_get_string_literal_with_keyword(self, mock_open):
         self.assert_token(tokens.TokenType.STRING_LITERAL, "abcreturnabc")
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO(
         '"' + 'x' * (lexical_analysis.StringLiteralSubLexer.MAX_STRING_LITERAL_LENGTH + 1) + '"'))
-    def test_get_string_literal_too_long(self, mock_report, mock_open):
+    def test_get_string_literal_too_long(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
     @mock.patch('timoninterpreter.error_handling.report_lexical_warning')
     @mock.patch('builtins.open', return_value=io.StringIO('"abc'))
@@ -469,12 +423,10 @@ class LexerCommentTestCase(BaseLexerTestCase):
         self.assert_tokens([(tokens.TokenType.IDENTIFIER, "abc"),
                             (tokens.TokenType.IDENTIFIER, "ghi")])
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO('#' + 'x' * (Lexer.MAX_COMMENT_LENGTH + 1) + '#'))
-    def test_get_comment_too_long(self, mock_report, mock_open):
+    def test_get_comment_too_long(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
     @mock.patch('timoninterpreter.error_handling.report_lexical_warning')
     @mock.patch('builtins.open', return_value=io.StringIO("#abc"))
@@ -501,12 +453,10 @@ class LexerMiscellaneousTestCase(BaseLexerTestCase):
         self.assert_tokens([(tokens.TokenType.IDENTIFIER, "a"),
                             (tokens.TokenType.IDENTIFIER, "b")])
 
-    @mock.patch('timoninterpreter.error_handling.report_lexical_error')
     @mock.patch('builtins.open', return_value=io.StringIO(' ' * (Lexer.MAX_SKIPPABLE_CHARACTERS_LENGTH + 1)))
-    def test_get_skippable_too_long(self, mock_report, mock_open):
+    def test_get_skippable_too_long(self, mock_open):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.LexicalError, Lexer(fr).get)
-            self.assertTrue(mock_report.called)
 
     @mock.patch('builtins.open', return_value=io.StringIO("abc"))
     def test_get_token_position_at_start(self, mock_open):

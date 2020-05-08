@@ -24,7 +24,12 @@ class InterpreterError(Exception):
 
 class LexicalError(InterpreterError):
     """Error raised when lexer can't tokenize input"""
-    pass
+    def __init__(self, line_num, line_pos, absolute_pos, source_reader, message):
+        super().__init__(message)
+        self.line_num = line_num
+        self.line_pos = line_pos
+        self.absolute_pos = absolute_pos
+        self.source_reader = source_reader
 
 
 # Reporting

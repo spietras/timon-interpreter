@@ -90,12 +90,11 @@ class SubLexer(BaseLexer, ABC):
         self.start_absolute_pos = self.source_reader.get_file_pos().get_absolute_pos()
 
     def make_error(self, message):
-        error_handling.report_lexical_error(self.start_line_num,
-                                            self.start_line_pos,
-                                            self.start_absolute_pos,
-                                            self.source_reader,
-                                            message)
-        raise error_handling.LexicalError(message)
+        raise error_handling.LexicalError(self.start_line_num,
+                                          self.start_line_pos,
+                                          self.start_absolute_pos,
+                                          self.source_reader,
+                                          message)
 
 
 class IdentifierSubLexer(SubLexer):
@@ -247,8 +246,8 @@ class NumericalLiteralSubLexer(SubLexer):
                                     self.start_line_pos,
                                     self.start_absolute_pos,
                                     tokens.DateValue(values[0], values[1], values[2]))
-            except error_handling.LexicalError as e:
-                self.make_error(e.message)
+            except ValueError as e:
+                self.make_error(str(e))
         self.source_reader.get()
 
         digits = self._get_two_digits()
@@ -270,8 +269,8 @@ class NumericalLiteralSubLexer(SubLexer):
                                 self.start_line_pos,
                                 self.start_absolute_pos,
                                 tokens.DateTimeValue(values[0], values[1], values[2], values[3], values[4], values[5]))
-        except error_handling.LexicalError as e:
-            self.make_error(e.message)
+        except ValueError as e:
+            self.make_error(str(e))
 
     def _get_hour_token(self, first_value):
         self.source_reader.get()
@@ -291,8 +290,8 @@ class NumericalLiteralSubLexer(SubLexer):
                                 self.start_line_pos,
                                 self.start_absolute_pos,
                                 tokens.TimeValue(values[0], values[1], values[2]))
-        except error_handling.LexicalError as e:
-            self.make_error(e.message)
+        except ValueError as e:
+            self.make_error(str(e))
 
 
 class StringLiteralSubLexer(SubLexer):
@@ -493,12 +492,11 @@ class Lexer(BaseLexer):
             if counter >= self.MAX_SKIPPABLE_CHARACTERS_LENGTH:  # >= because we increase counter later
                 message = "Too many skippable characters. Maximum size is {} characters".format(
                     self.MAX_SKIPPABLE_CHARACTERS_LENGTH)
-                error_handling.report_lexical_error(start_line_num,
-                                                    start_line_pos,
-                                                    start_absolute_pos,
-                                                    self.source_reader,
-                                                    message)
-                raise error_handling.LexicalError(message)
+                raise error_handling.LexicalError(start_line_num,
+                                                  start_line_pos,
+                                                  start_absolute_pos,
+                                                  self.source_reader,
+                                                  message)
 
             if is_comment_bound(character):
                 counter += self._skip_comment()
@@ -523,12 +521,11 @@ class Lexer(BaseLexer):
             if counter > self.MAX_COMMENT_LENGTH:
                 message = "Comment is too long. Maximum size is {} characters (excluding bounds)".format(
                     self.MAX_COMMENT_LENGTH)
-                error_handling.report_lexical_error(start_line_num,
-                                                    start_line_pos,
-                                                    start_absolute_pos,
-                                                    self.source_reader,
-                                                    message)
-                raise error_handling.LexicalError(message)
+                raise error_handling.LexicalError(start_line_num,
+                                                  start_line_pos,
+                                                  start_absolute_pos,
+                                                  self.source_reader,
+                                                  message)
             if self.source_reader.ended():  # comment unclosed before end of file
                 error_handling.report_lexical_warning(start_line_num,
                                                       start_line_pos,
@@ -570,9 +567,8 @@ class Lexer(BaseLexer):
             return UnambiguousSingularSubLexer(self.source_reader).get()
 
         message = "Unexpected character, not recognizable by any rule"
-        error_handling.report_lexical_error(self.source_reader.get_file_pos().get_line_num(),
-                                            self.source_reader.get_file_pos().get_line_pos(),
-                                            self.source_reader.get_file_pos().get_absolute_pos(),
-                                            self.source_reader,
-                                            message)
-        raise error_handling.LexicalError(message)
+        raise error_handling.LexicalError(self.source_reader.get_file_pos().get_line_num(),
+                                          self.source_reader.get_file_pos().get_line_pos(),
+                                          self.source_reader.get_file_pos().get_absolute_pos(),
+                                          self.source_reader,
+                                          message)

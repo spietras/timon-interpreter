@@ -32,6 +32,14 @@ class LexicalError(InterpreterError):
         self.source_reader = source_reader
 
 
+class SyntacticError(InterpreterError):
+    """Error raised when syntax is wrong"""
+    def __init__(self, token, source_reader, message):
+        super().__init__(message)
+        self.token = token
+        self.source_reader = source_reader
+
+
 # Reporting
 
 
@@ -81,3 +89,11 @@ def report_lexical_error(line_num, line_pos, absolute_pos, source_reader, messag
 
 def report_lexical_warning(line_num, line_pos, absolute_pos, source_reader, message, action, stream=sys.stdout):
     _report_positional_warning("Lexical", line_num, line_pos, absolute_pos, source_reader, message, action, stream)
+
+
+def report_syntactic_error(token, source_reader, message, stream=sys.stdout):
+    _report_positional_error("Syntactic", token.line_num, token.line_pos, token.absolute_pos, source_reader, message, stream)
+
+
+def report_syntactic_warning(token, source_reader, message, action, stream=sys.stdout):
+    _report_positional_warning("Syntactic", token.line_num, token.line_pos, token.absolute_pos, source_reader, message, action, stream)

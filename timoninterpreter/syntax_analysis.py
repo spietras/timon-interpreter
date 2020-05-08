@@ -7,6 +7,7 @@ Syntax analysis module
 from abc import ABC, abstractmethod
 
 from timoninterpreter import tokens
+from timoninterpreter.error_handling import SyntacticError
 
 
 class BaseNode(ABC):
@@ -35,6 +36,11 @@ class BaseNode(ABC):
     def _starting_nodes(cls):
         pass
 
+    @staticmethod
+    def make_error(token, expected_tokens, lexer):
+        raise SyntacticError(token, lexer.source_reader,
+                             "Expected one of {} but got {}".format(expected_tokens, token.type))
+
 
 class SwitchNode(BaseNode, ABC):
     def __init__(self, lexer):
@@ -46,7 +52,7 @@ class SwitchNode(BaseNode, ABC):
                 self._add_child(node(lexer))
                 return
 
-        raise ValueError  # TODO: error
+        self.make_error(token, self.starting_token_types(), lexer)
 
 
 class LeafNode(BaseNode, ABC):
@@ -54,7 +60,7 @@ class LeafNode(BaseNode, ABC):
         super().__init__()
         self.token = lexer.peek()
         if self.token.type != self.token_type():
-            raise ValueError  # TODO: error
+            self.make_error(self.token, {self.token_type()}, lexer)
         lexer.get()
 
     @classmethod
@@ -222,7 +228,7 @@ class Program(BaseNode, Executable):
             elif token.type in NestableStatement.starting_token_types():
                 self._add_child(NestableStatement(lexer))
             else:
-                raise ValueError  # TODO: error
+                self.make_error(token, self.starting_token_types(), lexer)
 
             token = lexer.peek()
 
@@ -275,7 +281,9 @@ class IdentifierFirstStatement(BaseNode, Executable):
         elif token.type in VariableAssignmentStatement.starting_token_types():
             self._add_child(VariableAssignmentStatement(lexer, identifier))
         else:
-            raise ValueError  # TODO: error
+            self.make_error(token,
+                            FunctionCall.starting_token_types() | VariableAssignmentStatement.starting_token_types(),
+                            lexer)
 
     @classmethod
     def _starting_nodes(cls):
@@ -528,7 +536,7 @@ class MathTerm(BaseNode, SelfEvaluable):
         elif token.type in ParenthesisedMathExpression.starting_token_types():
             self._add_child(ParenthesisedMathExpression(lexer))
         else:
-            raise ValueError  # TODO: error
+            self.make_error(token, self.starting_token_types(), lexer)
 
     @classmethod
     def _starting_nodes(cls):
@@ -635,7 +643,9 @@ class LogicTerm(BaseNode, SelfEvaluable):
         elif token.type in ParenthesisedLogicExpression.starting_token_types():
             self._add_child(ParenthesisedLogicExpression(lexer))
         else:
-            raise ValueError  # TODO: error
+            self.make_error(token,
+                            MathExpression.starting_token_types() | ParenthesisedLogicExpression.starting_token_types(),
+                            lexer)
 
     @classmethod
     def _starting_nodes(cls):

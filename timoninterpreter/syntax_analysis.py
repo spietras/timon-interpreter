@@ -298,7 +298,7 @@ class VariableAssignmentStatement(BaseNode, Executable):
         super().__init__()
         self._add_child(identifier)
         Assign(lexer)
-        self._add_child(MathExpression(lexer))
+        self._add_child(Expression(lexer))
 
     @classmethod
     def _starting_nodes(cls):
@@ -345,7 +345,7 @@ class IfStatement(BaseNode, Executable):
     def __init__(self, lexer):
         super().__init__()
         IfKeyword(lexer)
-        self._add_child(LogicExpression(lexer))
+        self._add_child(Expression(lexer))
         self._add_child(Body(lexer))
         token = lexer.peek()
         if token.type in ElseKeyword.starting_token_types():
@@ -381,7 +381,7 @@ class PrintStatement(BaseNode, Executable):
     def __init__(self, lexer):
         super().__init__()
         PrintKeyword(lexer)
-        self._add_child(MathExpression(lexer))
+        self._add_child(Expression(lexer))
 
     @classmethod
     def _starting_nodes(cls):
@@ -395,7 +395,9 @@ class ReturnStatement(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
         super().__init__()
         ReturnKeyword(lexer)
-        self._add_child(MathExpression(lexer))
+        token = lexer.peek()
+        if token.type in Expression.starting_token_types():
+            self._add_child(Expression(lexer))
 
     @classmethod
     def _starting_nodes(cls):
@@ -448,13 +450,13 @@ class Body(BaseNode, Executable):
 class FromRange(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
         super().__init__()
-        self._add_child(MathExpression(lexer))
+        self._add_child(Expression(lexer))
         ToKeyword(lexer)
-        self._add_child(MathExpression(lexer))
+        self._add_child(Expression(lexer))
 
     @classmethod
     def _starting_nodes(cls):
-        return {MathExpression}
+        return {Expression}
 
     def evaluate(self, environment):
         pass
@@ -488,80 +490,7 @@ class FromIterator(BaseNode, SelfEvaluable):
         pass
 
 
-class MathExpression(BaseNode, SelfEvaluable):
-    def __init__(self, lexer):
-        super().__init__()
-        self._add_child(MultiplicativeMathExpression(lexer))
-        token = lexer.peek()
-        while token.type in AdditiveOperator.starting_token_types():
-            self._add_child(AdditiveOperator(lexer))
-            self._add_child(MultiplicativeMathExpression(lexer))
-            token = lexer.peek()
-
-    @classmethod
-    def _starting_nodes(cls):
-        return {MultiplicativeMathExpression}
-
-    def evaluate(self, environment):
-        pass
-
-
-class MultiplicativeMathExpression(BaseNode, SelfEvaluable):
-    def __init__(self, lexer):
-        super().__init__()
-        self._add_child(MathTerm(lexer))
-        token = lexer.peek()
-        while token.type in MultiplicativeOperator.starting_token_types():
-            self._add_child(MultiplicativeOperator(lexer))
-            self._add_child(MathTerm(lexer))
-            token = lexer.peek()
-
-    @classmethod
-    def _starting_nodes(cls):
-        return {MathTerm}
-
-    def evaluate(self, environment):
-        pass
-
-
-class MathTerm(BaseNode, SelfEvaluable):
-    def __init__(self, lexer):
-        super().__init__()
-        token = lexer.peek()
-        if token.type in MathNegationOperator.starting_token_types():
-            self._add_child(MathNegationOperator(lexer))
-        token = lexer.peek()
-        if token.type in Value.starting_token_types():
-            self._add_child(Value(lexer))
-        elif token.type in ParenthesisedMathExpression.starting_token_types():
-            self._add_child(ParenthesisedMathExpression(lexer))
-        else:
-            self.make_error(token, self.starting_token_types(), lexer)
-
-    @classmethod
-    def _starting_nodes(cls):
-        return {MathNegationOperator, Value, ParenthesisedMathExpression}
-
-    def evaluate(self, environment):
-        pass
-
-
-class ParenthesisedMathExpression(BaseNode, SelfEvaluable):
-    def __init__(self, lexer):
-        super().__init__()
-        LeftParenthesis(lexer)
-        self._add_child(MathExpression(lexer))
-        RightParenthesis(lexer)
-
-    @classmethod
-    def _starting_nodes(cls):
-        return {LeftParenthesis}
-
-    def evaluate(self, environment):
-        pass
-
-
-class LogicExpression(BaseNode, SelfEvaluable):
+class Expression(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
         super().__init__()
         self._add_child(LogicAndExpression(lexer))
@@ -638,28 +567,79 @@ class LogicTerm(BaseNode, SelfEvaluable):
         if token.type in LogicNegationOperator.starting_token_types():
             self._add_child(LogicNegationOperator(lexer))
         token = lexer.peek()
-        if token.type in MathExpression.starting_token_types():
-            self._add_child(MathExpression(lexer))
-        elif token.type in ParenthesisedLogicExpression.starting_token_types():
-            self._add_child(ParenthesisedLogicExpression(lexer))
-        else:
-            self.make_error(token,
-                            MathExpression.starting_token_types() | ParenthesisedLogicExpression.starting_token_types(),
-                            lexer)
+        self._add_child(MathExpression(lexer))
 
     @classmethod
     def _starting_nodes(cls):
-        return {LogicNegationOperator, MathExpression, ParenthesisedLogicExpression}
+        return {LogicNegationOperator, MathExpression}
 
     def evaluate(self, environment):
         pass
 
 
-class ParenthesisedLogicExpression(BaseNode, SelfEvaluable):
+class MathExpression(BaseNode, SelfEvaluable):
+    def __init__(self, lexer):
+        super().__init__()
+        self._add_child(MultiplicativeMathExpression(lexer))
+        token = lexer.peek()
+        while token.type in AdditiveOperator.starting_token_types():
+            self._add_child(AdditiveOperator(lexer))
+            self._add_child(MultiplicativeMathExpression(lexer))
+            token = lexer.peek()
+
+    @classmethod
+    def _starting_nodes(cls):
+        return {MultiplicativeMathExpression}
+
+    def evaluate(self, environment):
+        pass
+
+
+class MultiplicativeMathExpression(BaseNode, SelfEvaluable):
+    def __init__(self, lexer):
+        super().__init__()
+        self._add_child(MathTerm(lexer))
+        token = lexer.peek()
+        while token.type in MultiplicativeOperator.starting_token_types():
+            self._add_child(MultiplicativeOperator(lexer))
+            self._add_child(MathTerm(lexer))
+            token = lexer.peek()
+
+    @classmethod
+    def _starting_nodes(cls):
+        return {MathTerm}
+
+    def evaluate(self, environment):
+        pass
+
+
+class MathTerm(BaseNode, SelfEvaluable):
+    def __init__(self, lexer):
+        super().__init__()
+        token = lexer.peek()
+        if token.type in MathNegationOperator.starting_token_types():
+            self._add_child(MathNegationOperator(lexer))
+        token = lexer.peek()
+        if token.type in Value.starting_token_types():
+            self._add_child(Value(lexer))
+        elif token.type in ParenthesisedExpression.starting_token_types():
+            self._add_child(ParenthesisedExpression(lexer))
+        else:
+            self.make_error(token, self.starting_token_types(), lexer)
+
+    @classmethod
+    def _starting_nodes(cls):
+        return {MathNegationOperator, Value, ParenthesisedExpression}
+
+    def evaluate(self, environment):
+        pass
+
+
+class ParenthesisedExpression(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
         super().__init__()
         LeftParenthesis(lexer)
-        self._add_child(LogicExpression(lexer))
+        self._add_child(Expression(lexer))
         RightParenthesis(lexer)
 
     @classmethod
@@ -1015,12 +995,12 @@ class ParametersCall(BaseNode, SelfEvaluable):
         super().__init__()
         LeftParenthesis(lexer)
         token = lexer.peek()
-        if token.type in MathExpression.starting_token_types():
-            self._add_child(MathExpression(lexer))
+        if token.type in Expression.starting_token_types():
+            self._add_child(Expression(lexer))
             token = lexer.peek()
             while token.type in Comma.starting_token_types():
                 Comma(lexer)
-                self._add_child(MathExpression(lexer))
+                self._add_child(Expression(lexer))
                 token = lexer.peek()
         RightParenthesis(lexer)
 

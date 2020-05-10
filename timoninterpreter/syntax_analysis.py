@@ -21,17 +21,29 @@ class BaseNode(ABC):
         Get token types that this rule can start with
 
         Returns:
-            List of token types
+            Set of token types
         """
         return {t for n in cls._starting_nodes() for t in n.starting_token_types()}
 
     @classmethod
     @abstractmethod
     def _starting_nodes(cls):
+        """
+        Get nodes that this rules can start with
+
+        Returns:
+            Set of node classes
+        """
         pass
 
     @abstractmethod
     def get_children(self):
+        """
+        Get children on this node
+
+        Returns:
+            List of nodes
+        """
         pass
 
     @staticmethod
@@ -41,6 +53,10 @@ class BaseNode(ABC):
 
 
 class SwitchNode(BaseNode, ABC):
+    """
+    Node type for nodes with multiple possible child types
+    """
+
     def __init__(self, lexer):
         token = lexer.peek()
 
@@ -56,6 +72,10 @@ class SwitchNode(BaseNode, ABC):
 
 
 class LeafNode(BaseNode, ABC):
+    """
+    Node that doesn't have children, therefore must contain token
+    """
+
     def __init__(self, lexer):
         super().__init__()
         self.token = lexer.peek()
@@ -66,6 +86,9 @@ class LeafNode(BaseNode, ABC):
     @classmethod
     @abstractmethod
     def token_type(cls):
+        """
+        Get token type of this node
+        """
         pass
 
     @classmethod
@@ -304,7 +327,8 @@ class IdentifierFirstStatement(BaseNode, Executable):
 
 
 class VariableAssignmentStatement(BaseNode, Executable):
-    def __init__(self, lexer, identifier):
+    def __init__(self, lexer,
+                 identifier):  # have to pass identifier as it was already parsed above (because of ambiguity)
         self.identifier = identifier
         Assign(lexer)
         self.expression = Expression(lexer)
@@ -1060,7 +1084,8 @@ class IdentifierFirstValue(BaseNode, SelfEvaluable):
 
 
 class FunctionCall(BaseNode, SelfEvaluable):
-    def __init__(self, lexer, identifier):
+    def __init__(self, lexer,
+                 identifier):  # have to pass identifier as it was already parsed above (because of ambiguity)
         self.identifier = identifier
         self.parameters = ParametersCall(lexer)
 
@@ -1101,7 +1126,8 @@ class ParametersCall(BaseNode, SelfEvaluable):
 
 
 class TimeInfoAccess(BaseNode, SelfEvaluable):
-    def __init__(self, lexer, identifier):
+    def __init__(self, lexer,
+                 identifier):  # have to pass identifier as it was already parsed above (because of ambiguity)
         self.identifier = identifier
         Access(lexer)
         self.time_unit = TimeUnit(lexer)

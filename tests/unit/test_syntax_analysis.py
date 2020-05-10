@@ -17,18 +17,6 @@ class BaseParsingTestCase(unittest.TestCase):
             self.assertEqual(children_types, expected_children_types)
             return node
 
-    def assert_tree(self, expected_structure):
-        with FileReader("whatever") as fr:
-            node = expected_structure[0](Lexer(fr))
-            self._asert_tree_node(node, expected_structure)
-
-    def _asert_tree_node(self, node, expected_structure):
-        self.assertIsInstance(node, expected_structure[0])
-        if expected_structure[1] is None:
-            return
-        for i, expected_child in enumerate(expected_structure[1]):
-            self._asert_tree_node(node.get_children()[i], expected_child)
-
 
 # noinspection PyUnusedLocal
 class ParsingLeafNodeTestCase(BaseParsingTestCase):

@@ -13,7 +13,7 @@ class BaseParsingTestCase(unittest.TestCase):
     def assert_node(self, expected_type, expected_children_types):
         with FileReader("whatever") as fr:
             node = expected_type(Lexer(fr))
-            children_types = [type(child) for child in node.children]
+            children_types = [type(child) for child in node.get_children()]
             self.assertEqual(children_types, expected_children_types)
             return node
 
@@ -27,7 +27,7 @@ class BaseParsingTestCase(unittest.TestCase):
         if expected_structure[1] is None:
             return
         for i, expected_child in enumerate(expected_structure[1]):
-            self._asert_tree_node(node.children[i], expected_child)
+            self._asert_tree_node(node.get_children()[i], expected_child)
 
 
 # noinspection PyUnusedLocal
@@ -331,7 +331,7 @@ class VariableAssignmentStatementNodeTestCase(BaseParsingTestCase):
         with FileReader("whatever") as fr:
             lexer = Lexer(fr)
             node = syntax_analysis.VariableAssignmentStatement(lexer, syntax_analysis.Identifier(lexer))
-            children_types = [type(child) for child in node.children]
+            children_types = [type(child) for child in node.get_children()]
             self.assertEqual(children_types, [syntax_analysis.Identifier, syntax_analysis.Expression])
 
     @mock.patch('builtins.open', return_value=io.StringIO("a 10"))
@@ -1150,7 +1150,7 @@ class FunctionCallNodeTestCase(BaseParsingTestCase):
         with FileReader("whatever") as fr:
             lexer = Lexer(fr)
             node = syntax_analysis.FunctionCall(lexer, syntax_analysis.Identifier(lexer))
-            children_types = [type(child) for child in node.children]
+            children_types = [type(child) for child in node.get_children()]
             self.assertEqual(children_types, [syntax_analysis.Identifier, syntax_analysis.ParametersCall])
 
     @mock.patch('builtins.open', return_value=io.StringIO("abc"))
@@ -1215,7 +1215,7 @@ class TimeInfoAccessNodeTestCase(BaseParsingTestCase):
         with FileReader("whatever") as fr:
             lexer = Lexer(fr)
             node = syntax_analysis.TimeInfoAccess(lexer, syntax_analysis.Identifier(lexer))
-            children_types = [type(child) for child in node.children]
+            children_types = [type(child) for child in node.get_children()]
             self.assertEqual(children_types, [syntax_analysis.Identifier, syntax_analysis.TimeUnit])
 
     @mock.patch('builtins.open', return_value=io.StringIO("a days"))

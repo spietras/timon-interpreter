@@ -30,11 +30,11 @@ def display_syntax_tree(root_node):
         tee = '├── '
         last = '└── '
 
-        pointers = [tee] * (len(node.children) - 1) + [last]
-        for pointer, child in zip(pointers, node.children):
+        pointers = [tee] * (len(node.get_children()) - 1) + [last]
+        for pointer, child in zip(pointers, node.get_children()):
             suffix = " : " + str(child.token) if isinstance(child, LeafNode) else ""
             yield prefix + pointer + type(child).__name__ + suffix
-            if child.children:
+            if child.get_children():
                 extension = branch if pointer == tee else space
                 yield from tree(child, prefix=prefix+extension)
 

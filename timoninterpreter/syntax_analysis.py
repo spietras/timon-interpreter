@@ -15,12 +15,6 @@ class BaseNode(ABC):
     Node base class
     """
 
-    def __init__(self):
-        self.children = []
-
-    def _add_child(self, node):
-        self.children.append(node)
-
     @classmethod
     def starting_token_types(cls):
         """
@@ -36,6 +30,10 @@ class BaseNode(ABC):
     def _starting_nodes(cls):
         pass
 
+    @abstractmethod
+    def get_children(self):
+        pass
+
     @staticmethod
     def make_error(token, expected_tokens, lexer):
         raise SyntacticError(token, lexer.source_reader,
@@ -44,15 +42,17 @@ class BaseNode(ABC):
 
 class SwitchNode(BaseNode, ABC):
     def __init__(self, lexer):
-        super().__init__()
         token = lexer.peek()
 
         for node in self._starting_nodes():
             if token.type in node.starting_token_types():
-                self._add_child(node(lexer))
+                self.child = node(lexer)
                 return
 
         self.make_error(token, self.starting_token_types(), lexer)
+
+    def get_children(self):
+        return [self.child]
 
 
 class LeafNode(BaseNode, ABC):
@@ -75,6 +75,9 @@ class LeafNode(BaseNode, ABC):
     @classmethod
     def _starting_nodes(cls):
         return None
+
+    def get_children(self):
+        return []
 
 
 class BinaryEvaluable(ABC):
@@ -220,13 +223,13 @@ class Identifier(LeafNode, SelfEvaluable):
 
 class Program(BaseNode, Executable):
     def __init__(self, lexer):
-        super().__init__()
+        self.statements = []
         token = lexer.peek()
         while token.type != tokens.TokenType.END:
             if token.type in NonNestableStatement.starting_token_types():
-                self._add_child(NonNestableStatement(lexer))
+                self.statements.append(NonNestableStatement(lexer))
             elif token.type in NestableStatement.starting_token_types():
-                self._add_child(NestableStatement(lexer))
+                self.statements.append(NestableStatement(lexer))
             else:
                 self.make_error(token, self.starting_token_types(), lexer)
 
@@ -236,19 +239,24 @@ class Program(BaseNode, Executable):
     def _starting_nodes(cls):
         return {NonNestableStatement, NestableStatement}
 
+    def get_children(self):
+        return self.statements
+
     def execute(self, environment):
         pass
 
 
 class NonNestableStatement(BaseNode, Executable):
     def __init__(self, lexer):
-        super().__init__()
-        self._add_child(FunctionDefinitionStatement(lexer))
+        self.statement = FunctionDefinitionStatement(lexer)
         Semicolon(lexer)
 
     @classmethod
     def _starting_nodes(cls):
         return {FunctionDefinitionStatement}
+
+    def get_children(self):
+        return [self.statement]
 
     def execute(self, environment):
         pass
@@ -273,13 +281,12 @@ class NestableStatement(SwitchNode, Executable):
 
 class IdentifierFirstStatement(BaseNode, Executable):
     def __init__(self, lexer):
-        super().__init__()
         identifier = Identifier(lexer)
         token = lexer.peek()
         if token.type in FunctionCall.starting_token_types():
-            self._add_child(FunctionCall(lexer, identifier))
+            self.statement = FunctionCall(lexer, identifier)
         elif token.type in VariableAssignmentStatement.starting_token_types():
-            self._add_child(VariableAssignmentStatement(lexer, identifier))
+            self.statement = VariableAssignmentStatement(lexer, identifier)
         else:
             self.make_error(token,
                             FunctionCall.starting_token_types() | VariableAssignmentStatement.starting_token_types(),
@@ -289,20 +296,25 @@ class IdentifierFirstStatement(BaseNode, Executable):
     def _starting_nodes(cls):
         return {Identifier}
 
+    def get_children(self):
+        return [self.statement]
+
     def execute(self, environment):
         pass
 
 
 class VariableAssignmentStatement(BaseNode, Executable):
     def __init__(self, lexer, identifier):
-        super().__init__()
-        self._add_child(identifier)
+        self.identifier = identifier
         Assign(lexer)
-        self._add_child(Expression(lexer))
+        self.expression = Expression(lexer)
 
     @classmethod
     def _starting_nodes(cls):
         return {Assign}
+
+    def get_children(self):
+        return [self.identifier, self.expression]
 
     def execute(self, environment):
         pass
@@ -310,15 +322,17 @@ class VariableAssignmentStatement(BaseNode, Executable):
 
 class FunctionDefinitionStatement(BaseNode, Executable):
     def __init__(self, lexer):
-        super().__init__()
         FunKeyword(lexer)
-        self._add_child(Identifier(lexer))
-        self._add_child(ParametersDeclaration(lexer))
-        self._add_child(Body(lexer))
+        self.identifier = Identifier(lexer)
+        self.parameters = ParametersDeclaration(lexer)
+        self.body = Body(lexer)
 
     @classmethod
     def _starting_nodes(cls):
         return {FunKeyword}
+
+    def get_children(self):
+        return [self.identifier, self.parameters, self.body]
 
     def execute(self, environment):
         pass
@@ -326,16 +340,22 @@ class FunctionDefinitionStatement(BaseNode, Executable):
 
 class VariableDefinitionStatement(BaseNode, Executable):
     def __init__(self, lexer):
-        super().__init__()
         VarKeyword(lexer)
-        self._add_child(Identifier(lexer))
+        self.identifier = Identifier(lexer)
+        self.assignment = None
         token = lexer.peek()
         if token.type in VariableAssignmentStatement.starting_token_types():
-            self._add_child(VariableAssignmentStatement(lexer, self.children[0]))
+            self.assignment = VariableAssignmentStatement(lexer, self.identifier)
 
     @classmethod
     def _starting_nodes(cls):
         return {VarKeyword}
+
+    def get_children(self):
+        if self.assignment is None:
+            return [self.identifier]
+
+        return [self.identifier, self.assignment]
 
     def execute(self, environment):
         pass
@@ -343,18 +363,24 @@ class VariableDefinitionStatement(BaseNode, Executable):
 
 class IfStatement(BaseNode, Executable):
     def __init__(self, lexer):
-        super().__init__()
         IfKeyword(lexer)
-        self._add_child(Expression(lexer))
-        self._add_child(Body(lexer))
+        self.expression = Expression(lexer)
+        self.body = Body(lexer)
+        self.else_body = None
         token = lexer.peek()
         if token.type in ElseKeyword.starting_token_types():
             ElseKeyword(lexer)
-            self._add_child(Body(lexer))
+            self.else_body = Body(lexer)
 
     @classmethod
     def _starting_nodes(cls):
         return {IfKeyword}
+
+    def get_children(self):
+        if self.else_body is None:
+            return [self.expression, self.body]
+
+        return [self.expression, self.body, self.else_body]
 
     def execute(self, environment):
         pass
@@ -362,16 +388,18 @@ class IfStatement(BaseNode, Executable):
 
 class FromStatement(BaseNode, Executable):
     def __init__(self, lexer):
-        super().__init__()
         FromKeyword(lexer)
-        self._add_child(FromRange(lexer))
-        self._add_child(FromStep(lexer))
-        self._add_child(FromIterator(lexer))
-        self._add_child(Body(lexer))
+        self.range = FromRange(lexer)
+        self.step = FromStep(lexer)
+        self.iterator = FromIterator(lexer)
+        self.body = Body(lexer)
 
     @classmethod
     def _starting_nodes(cls):
         return {FromKeyword}
+
+    def get_children(self):
+        return [self.range, self.step, self.iterator, self.body]
 
     def execute(self, environment):
         pass
@@ -379,13 +407,15 @@ class FromStatement(BaseNode, Executable):
 
 class PrintStatement(BaseNode, Executable):
     def __init__(self, lexer):
-        super().__init__()
         PrintKeyword(lexer)
-        self._add_child(Expression(lexer))
+        self.expression = Expression(lexer)
 
     @classmethod
     def _starting_nodes(cls):
         return {PrintKeyword}
+
+    def get_children(self):
+        return [self.expression]
 
     def execute(self, environment):
         pass
@@ -393,15 +423,21 @@ class PrintStatement(BaseNode, Executable):
 
 class ReturnStatement(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
-        super().__init__()
         ReturnKeyword(lexer)
+        self.expression = None
         token = lexer.peek()
         if token.type in Expression.starting_token_types():
-            self._add_child(Expression(lexer))
+            self.expression = Expression(lexer)
 
     @classmethod
     def _starting_nodes(cls):
         return {ReturnKeyword}
+
+    def get_children(self):
+        if self.expression is None:
+            return []
+
+        return [self.expression]
 
     def evaluate(self, environment):
         pass
@@ -409,15 +445,15 @@ class ReturnStatement(BaseNode, SelfEvaluable):
 
 class ParametersDeclaration(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
-        super().__init__()
         LeftParenthesis(lexer)
+        self.parameters = []
         token = lexer.peek()
         if token.type in Identifier.starting_token_types():
-            self._add_child(Identifier(lexer))
+            self.parameters.append(Identifier(lexer))
             token = lexer.peek()
             while token.type in Comma.starting_token_types():
                 Comma(lexer)
-                self._add_child(Identifier(lexer))
+                self.parameters.append(Identifier(lexer))
                 token = lexer.peek()
         RightParenthesis(lexer)
 
@@ -425,17 +461,20 @@ class ParametersDeclaration(BaseNode, SelfEvaluable):
     def _starting_nodes(cls):
         return {LeftParenthesis}
 
+    def get_children(self):
+        return self.parameters
+
     def evaluate(self, environment):
         pass
 
 
 class Body(BaseNode, Executable):
     def __init__(self, lexer):
-        super().__init__()
         LeftBracket(lexer)
+        self.statements = []
         token = lexer.peek()
         while token.type in NestableStatement.starting_token_types():
-            self._add_child(NestableStatement(lexer))
+            self.statements.append(NestableStatement(lexer))
             token = lexer.peek()
         RightBracket(lexer)
 
@@ -443,20 +482,25 @@ class Body(BaseNode, Executable):
     def _starting_nodes(cls):
         return {LeftBracket}
 
+    def get_children(self):
+        return self.statements
+
     def execute(self, environment):
         pass
 
 
 class FromRange(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
-        super().__init__()
-        self._add_child(Expression(lexer))
+        self.start = Expression(lexer)
         ToKeyword(lexer)
-        self._add_child(Expression(lexer))
+        self.end = Expression(lexer)
 
     @classmethod
     def _starting_nodes(cls):
         return {Expression}
+
+    def get_children(self):
+        return [self.start, self.end]
 
     def evaluate(self, environment):
         pass
@@ -464,13 +508,15 @@ class FromRange(BaseNode, SelfEvaluable):
 
 class FromStep(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
-        super().__init__()
         ByKeyword(lexer)
-        self._add_child(TimeUnit(lexer))
+        self.time_unit = TimeUnit(lexer)
 
     @classmethod
     def _starting_nodes(cls):
         return {ByKeyword}
+
+    def get_children(self):
+        return [self.time_unit]
 
     def evaluate(self, environment):
         pass
@@ -478,13 +524,15 @@ class FromStep(BaseNode, SelfEvaluable):
 
 class FromIterator(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
-        super().__init__()
         AsKeyword(lexer)
-        self._add_child(Identifier(lexer))
+        self.identifier = Identifier(lexer)
 
     @classmethod
     def _starting_nodes(cls):
         return {AsKeyword}
+
+    def get_children(self):
+        return [self.identifier]
 
     def evaluate(self, environment):
         pass
@@ -492,17 +540,19 @@ class FromIterator(BaseNode, SelfEvaluable):
 
 class Expression(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
-        super().__init__()
-        self._add_child(LogicAndExpression(lexer))
+        self.first_expression = LogicAndExpression(lexer)
+        self.operations = []
         token = lexer.peek()
         while token.type in OrOperator.starting_token_types():
-            self._add_child(OrOperator(lexer))
-            self._add_child(LogicAndExpression(lexer))
+            self.operations.append((OrOperator(lexer), LogicAndExpression(lexer)))
             token = lexer.peek()
 
     @classmethod
     def _starting_nodes(cls):
         return {LogicAndExpression}
+
+    def get_children(self):
+        return [self.first_expression] + [x for operation in self.operations for x in operation]
 
     def evaluate(self, environment):
         pass
@@ -510,17 +560,19 @@ class Expression(BaseNode, SelfEvaluable):
 
 class LogicAndExpression(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
-        super().__init__()
-        self._add_child(LogicEqualityExpression(lexer))
+        self.first_expression = LogicEqualityExpression(lexer)
+        self.operations = []
         token = lexer.peek()
         while token.type in AndOperator.starting_token_types():
-            self._add_child(AndOperator(lexer))
-            self._add_child(LogicEqualityExpression(lexer))
+            self.operations.append((AndOperator(lexer), LogicEqualityExpression(lexer)))
             token = lexer.peek()
 
     @classmethod
     def _starting_nodes(cls):
         return {LogicEqualityExpression}
+
+    def get_children(self):
+        return [self.first_expression] + [x for operation in self.operations for x in operation]
 
     def evaluate(self, environment):
         pass
@@ -528,16 +580,22 @@ class LogicAndExpression(BaseNode, SelfEvaluable):
 
 class LogicEqualityExpression(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
-        super().__init__()
-        self._add_child(LogicRelationalExpression(lexer))
+        self.first_expression = LogicRelationalExpression(lexer)
+        self.operator = None
         token = lexer.peek()
         if token.type in EqualityOperator.starting_token_types():
-            self._add_child(EqualityOperator(lexer))
-            self._add_child(LogicRelationalExpression(lexer))
+            self.operator = EqualityOperator(lexer)
+            self.second_expression = LogicRelationalExpression(lexer)
 
     @classmethod
     def _starting_nodes(cls):
         return {LogicRelationalExpression}
+
+    def get_children(self):
+        if self.operator is None:
+            return [self.first_expression]
+
+        return [self.first_expression, self.operator, self.second_expression]
 
     def evaluate(self, environment):
         pass
@@ -545,16 +603,22 @@ class LogicEqualityExpression(BaseNode, SelfEvaluable):
 
 class LogicRelationalExpression(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
-        super().__init__()
-        self._add_child(LogicTerm(lexer))
+        self.first_expression = LogicTerm(lexer)
+        self.operator = None
         token = lexer.peek()
         if token.type in RelationOperator.starting_token_types():
-            self._add_child(RelationOperator(lexer))
-            self._add_child(LogicTerm(lexer))
+            self.operator = RelationOperator(lexer)
+            self.second_expression = LogicTerm(lexer)
 
     @classmethod
     def _starting_nodes(cls):
         return {LogicTerm}
+
+    def get_children(self):
+        if self.operator is None:
+            return [self.first_expression]
+
+        return [self.first_expression, self.operator, self.second_expression]
 
     def evaluate(self, environment):
         pass
@@ -562,16 +626,21 @@ class LogicRelationalExpression(BaseNode, SelfEvaluable):
 
 class LogicTerm(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
-        super().__init__()
+        self.negation = None
         token = lexer.peek()
         if token.type in LogicNegationOperator.starting_token_types():
-            self._add_child(LogicNegationOperator(lexer))
-        token = lexer.peek()
-        self._add_child(MathExpression(lexer))
+            self.negation = LogicNegationOperator(lexer)
+        self.expression = MathExpression(lexer)
 
     @classmethod
     def _starting_nodes(cls):
         return {LogicNegationOperator, MathExpression}
+
+    def get_children(self):
+        if self.negation is None:
+            return [self.expression]
+
+        return [self.negation, self.expression]
 
     def evaluate(self, environment):
         pass
@@ -579,17 +648,19 @@ class LogicTerm(BaseNode, SelfEvaluable):
 
 class MathExpression(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
-        super().__init__()
-        self._add_child(MultiplicativeMathExpression(lexer))
+        self.first_expression = MultiplicativeMathExpression(lexer)
+        self.operations = []
         token = lexer.peek()
         while token.type in AdditiveOperator.starting_token_types():
-            self._add_child(AdditiveOperator(lexer))
-            self._add_child(MultiplicativeMathExpression(lexer))
+            self.operations.append((AdditiveOperator(lexer), MultiplicativeMathExpression(lexer)))
             token = lexer.peek()
 
     @classmethod
     def _starting_nodes(cls):
         return {MultiplicativeMathExpression}
+
+    def get_children(self):
+        return [self.first_expression] + [x for operation in self.operations for x in operation]
 
     def evaluate(self, environment):
         pass
@@ -597,17 +668,19 @@ class MathExpression(BaseNode, SelfEvaluable):
 
 class MultiplicativeMathExpression(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
-        super().__init__()
-        self._add_child(MathTerm(lexer))
+        self.first_expression = MathTerm(lexer)
+        self.operations = []
         token = lexer.peek()
         while token.type in MultiplicativeOperator.starting_token_types():
-            self._add_child(MultiplicativeOperator(lexer))
-            self._add_child(MathTerm(lexer))
+            self.operations.append((MultiplicativeOperator(lexer), MathTerm(lexer)))
             token = lexer.peek()
 
     @classmethod
     def _starting_nodes(cls):
         return {MathTerm}
+
+    def get_children(self):
+        return [self.first_expression] + [x for operation in self.operations for x in operation]
 
     def evaluate(self, environment):
         pass
@@ -615,15 +688,15 @@ class MultiplicativeMathExpression(BaseNode, SelfEvaluable):
 
 class MathTerm(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
-        super().__init__()
+        self.negation = None
         token = lexer.peek()
         if token.type in MathNegationOperator.starting_token_types():
-            self._add_child(MathNegationOperator(lexer))
+            self.negation = MathNegationOperator(lexer)
         token = lexer.peek()
         if token.type in Value.starting_token_types():
-            self._add_child(Value(lexer))
+            self.term = Value(lexer)
         elif token.type in ParenthesisedExpression.starting_token_types():
-            self._add_child(ParenthesisedExpression(lexer))
+            self.term = ParenthesisedExpression(lexer)
         else:
             self.make_error(token, self.starting_token_types(), lexer)
 
@@ -631,20 +704,28 @@ class MathTerm(BaseNode, SelfEvaluable):
     def _starting_nodes(cls):
         return {MathNegationOperator, Value, ParenthesisedExpression}
 
+    def get_children(self):
+        if self.negation is None:
+            return [self.term]
+
+        return [self.negation, self.term]
+
     def evaluate(self, environment):
         pass
 
 
 class ParenthesisedExpression(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
-        super().__init__()
         LeftParenthesis(lexer)
-        self._add_child(Expression(lexer))
+        self.expression = Expression(lexer)
         RightParenthesis(lexer)
 
     @classmethod
     def _starting_nodes(cls):
         return {LeftParenthesis}
+
+    def get_children(self):
+        return [self.expression]
 
     def evaluate(self, environment):
         pass
@@ -958,19 +1039,21 @@ class TimedeltaLiteral(LeafNode, SelfEvaluable):
 
 class IdentifierFirstValue(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
-        super().__init__()
         identifier = Identifier(lexer)
         token = lexer.peek()
         if token.type in FunctionCall.starting_token_types():
-            self._add_child(FunctionCall(lexer, identifier))
+            self.value = FunctionCall(lexer, identifier)
         elif token.type in TimeInfoAccess.starting_token_types():
-            self._add_child(TimeInfoAccess(lexer, identifier))
+            self.value = TimeInfoAccess(lexer, identifier)
         else:
-            self._add_child(identifier)
+            self.value = identifier
 
     @classmethod
     def _starting_nodes(cls):
         return {Identifier}
+
+    def get_children(self):
+        return [self.value]
 
     def evaluate(self, environment):
         pass
@@ -978,13 +1061,15 @@ class IdentifierFirstValue(BaseNode, SelfEvaluable):
 
 class FunctionCall(BaseNode, SelfEvaluable):
     def __init__(self, lexer, identifier):
-        super().__init__()
-        self._add_child(identifier)
-        self._add_child(ParametersCall(lexer))
+        self.identifier = identifier
+        self.parameters = ParametersCall(lexer)
 
     @classmethod
     def _starting_nodes(cls):
         return {ParametersCall}
+
+    def get_children(self):
+        return [self.identifier, self.parameters]
 
     def evaluate(self, environment):
         pass
@@ -992,15 +1077,15 @@ class FunctionCall(BaseNode, SelfEvaluable):
 
 class ParametersCall(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
-        super().__init__()
         LeftParenthesis(lexer)
+        self.parameters = []
         token = lexer.peek()
         if token.type in Expression.starting_token_types():
-            self._add_child(Expression(lexer))
+            self.parameters.append(Expression(lexer))
             token = lexer.peek()
             while token.type in Comma.starting_token_types():
                 Comma(lexer)
-                self._add_child(Expression(lexer))
+                self.parameters.append(Expression(lexer))
                 token = lexer.peek()
         RightParenthesis(lexer)
 
@@ -1008,20 +1093,25 @@ class ParametersCall(BaseNode, SelfEvaluable):
     def _starting_nodes(cls):
         return {LeftParenthesis}
 
+    def get_children(self):
+        return self.parameters
+
     def evaluate(self, environment):
         pass
 
 
 class TimeInfoAccess(BaseNode, SelfEvaluable):
     def __init__(self, lexer, identifier):
-        super().__init__()
-        self._add_child(identifier)
+        self.identifier = identifier
         Access(lexer)
-        self._add_child(TimeUnit(lexer))
+        self.time_unit = TimeUnit(lexer)
 
     @classmethod
     def _starting_nodes(cls):
         return {Access}
+
+    def get_children(self):
+        return [self.identifier, self.time_unit]
 
     def evaluate(self, environment):
         pass

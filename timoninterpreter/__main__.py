@@ -77,7 +77,11 @@ def run_parser(path):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="python based interpreter for simple date oriented language")
     parser.add_argument('path', help='path to script file')
+    parser.add_argument('-stage', choices=['lexer', 'parser'], default='parser')
 
     args = parser.parse_args()
 
-    run_parser(args.path)
+    if args.stage == 'lexer':
+        run_lexer(args.path)
+    elif args.stage == 'parser':
+        run_parser(args.path)

@@ -9,10 +9,12 @@ Python-based interpreter for simple time-oriented language called Timon ⏰
 Run from cmd from top directory:
 
 ```
-python3 -m timoninterpreter PATH_TO_SCRIPT
+python3 -m timoninterpreter [-stage {lexer, parser}] PATH_TO_SCRIPT
 ```
 
-Sample scripts can be found in ```tests/acceptance/scripts/```
+Sample scripts can be found in ```tests/acceptance/scripts/```.
+
+By passing ```-stage``` argument execution can be stopped at certain stages and output from final stage will be shown.
 
 ## Tests
 
@@ -30,4 +32,4 @@ python3 -m unittest discover tests/unit
 
 ## Grammar
 
-Timon language grammar can be found in ```docs/grammar.ebnf```
+Timon language grammar can be found in ```docs/grammar.ebnf```.

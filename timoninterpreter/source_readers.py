@@ -4,12 +4,13 @@ Source stream readers
 
 """
 
-import os
 import copy
+import os
 
 
 class FilePosition:
-    def __init__(self):
+    def __init__(self, file_path):
+        self._file_path = file_path
         self._line_num = 1
         self._line_pos = 0
         self._absolute_pos = 0
@@ -31,11 +32,17 @@ class FilePosition:
     def get_absolute_pos(self):
         return self._absolute_pos
 
+    def get_file_path(self):
+        return self._file_path
+
     def __eq__(self, other):
         if not isinstance(other, FilePosition):
             return NotImplemented
 
-        return self._line_num == other._line_num and self._line_pos == other._line_pos and self._absolute_pos == other._absolute_pos
+        return (self._line_num == other._line_num and
+                self._line_pos == other._line_pos and
+                self._absolute_pos == other._absolute_pos and
+                self._file_path == other._file_path)
 
 
 class FileReader:
@@ -46,7 +53,7 @@ class FileReader:
     def __init__(self, file_path):
         self._file_path = file_path
         self._file = None
-        self._file_pos = FilePosition()
+        self._file_pos = FilePosition(self._file_path)
         self._backward_checkpoint = None
         self._forward_checkpoint = None
 
@@ -89,7 +96,7 @@ class FileReader:
         if n < 0:
             n = -n
             offset = max(0, start_pos - n)
-            self._file.seek(offset,  os.SEEK_SET)
+            self._file.seek(offset, os.SEEK_SET)
 
         characters = self._file.read(n)
         self._file.seek(position, os.SEEK_SET)  # set previous position, explicitly from the beginning of the file

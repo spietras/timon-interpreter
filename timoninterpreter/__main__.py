@@ -6,19 +6,20 @@ Main script
 
 import argparse
 
-from timoninterpreter.source_readers import FileReader
-from timoninterpreter.lexical_analysis import Lexer
-from timoninterpreter.syntax_analysis import Program
-from timoninterpreter.syntax_analysis import LeafNode
-from timoninterpreter import tokens
 from timoninterpreter import error_handling
+from timoninterpreter import tokens
+from timoninterpreter.lexical_analysis import Lexer
+from timoninterpreter.source_readers import FileReader
+from timoninterpreter.syntax_analysis import LeafNode
+from timoninterpreter.syntax_analysis import Program
 
 
 def display_tokens(token_list):
     format_string = "{:<50} | {:<30} | {:<15} | {:<15} | {:<20}"
     print(format_string.format("token", "type", "line number", "line position", "absolute position"))
     for token in token_list:
-        print(format_string.format(str(token)[:50], token.type, token.line_num, token.line_pos, token.absolute_pos))
+        print(
+            format_string.format(str(token)[:50], token.get_type(), token.line_num, token.line_pos, token.absolute_pos))
 
 
 def display_syntax_tree(root_node):
@@ -36,7 +37,7 @@ def display_syntax_tree(root_node):
             yield prefix + pointer + type(child).__name__ + suffix
             if child.get_children():
                 extension = branch if pointer == tee else space
-                yield from tree(child, prefix=prefix+extension)
+                yield from tree(child, prefix=prefix + extension)
 
     print(type(root_node).__name__)
     for line in tree(root_node):
@@ -49,13 +50,17 @@ def run_lexer(path):
 
         with FileReader(path) as fr:
             lex = Lexer(fr)
-            while not (read_tokens and read_tokens[-1].type == tokens.TokenType.END):
+            while not (read_tokens and read_tokens[-1].get_type() == tokens.TokenType.END):
                 read_tokens.append(lex.get())
 
         display_tokens(read_tokens)
 
     except IOError as e:
         error_handling.report_generic_error("IO", str(e).capitalize())
+    except error_handling.LexicalError as e:
+        error_handling.report_lexical_error(e.file_pos, e.message)
+    except error_handling.SyntacticError as e:
+        error_handling.report_syntactic_error(e.token, e.message)
     except Exception as e:
         error_handling.report_generic_error("Unknown", str(e).capitalize())
 
@@ -70,6 +75,10 @@ def run_parser(path):
 
     except IOError as e:
         error_handling.report_generic_error("IO", str(e).capitalize())
+    except error_handling.LexicalError as e:
+        error_handling.report_lexical_error(e.file_pos, e.message)
+    except error_handling.SyntacticError as e:
+        error_handling.report_syntactic_error(e.token, e.message)
     except Exception as e:
         error_handling.report_generic_error("Unknown", str(e).capitalize())
 

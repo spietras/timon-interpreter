@@ -85,15 +85,10 @@ def is_keyword(string):
 class SubLexer(BaseLexer, ABC):
     def __init__(self, source_reader):
         super().__init__(source_reader)
-        self.start_line_num = self.source_reader.get_file_pos().get_line_num()
-        self.start_line_pos = self.source_reader.get_file_pos().get_line_pos()
-        self.start_absolute_pos = self.source_reader.get_file_pos().get_absolute_pos()
+        self.start_file_pos = self.source_reader.get_file_pos()
 
     def make_error(self, message):
-        raise error_handling.LexicalError(self.start_line_num,
-                                          self.start_line_pos,
-                                          self.start_absolute_pos,
-                                          self.source_reader,
+        raise error_handling.LexicalError(self.start_file_pos,
                                           message)
 
 
@@ -117,14 +112,10 @@ class IdentifierSubLexer(SubLexer):
 
         if is_keyword(identifier):
             return tokens.Token(tokens.keyword_token_type_map[identifier],
-                                self.start_line_num,
-                                self.start_line_pos,
-                                self.start_absolute_pos)
+                                self.start_file_pos)
 
         return tokens.Token(tokens.TokenType.IDENTIFIER,
-                            self.start_line_num,
-                            self.start_line_pos,
-                            self.start_absolute_pos,
+                            self.start_file_pos,
                             identifier)
 
 
@@ -156,9 +147,7 @@ class NumberLiteralSubLexer(SubLexer):
 
         if nb.get_number() == 0:
             return tokens.Token(tokens.TokenType.NUMBER_LITERAL,
-                                self.start_line_num,
-                                self.start_line_pos,
-                                self.start_absolute_pos,
+                                self.start_file_pos,
                                 0)
 
         counter = 1
@@ -173,9 +162,7 @@ class NumberLiteralSubLexer(SubLexer):
             next_character = self.source_reader.peek()
 
         return tokens.Token(tokens.TokenType.NUMBER_LITERAL,
-                            self.start_line_num,
-                            self.start_line_pos,
-                            self.start_absolute_pos,
+                            self.start_file_pos,
                             nb.get_number())
 
 
@@ -189,10 +176,10 @@ class NumericalLiteralSubLexer(SubLexer):
             first_value = digits_to_int([next_character])
             self.source_reader.get()
             next_character = self.source_reader.peek()
-        elif number_token.value < 10:  # if the next character is not a digit and number is only a single digit it has to be a standalone number
+        elif number_token.get_value() < 10:  # if the next character is not a digit and number is only a single digit it has to be a standalone number
             return number_token
         else:
-            first_value = number_token.value
+            first_value = number_token.get_value()
 
         if next_character == tokens.DATE_SEPARATOR:
             return self._get_date_or_datetime_token(first_value)
@@ -242,9 +229,7 @@ class NumericalLiteralSubLexer(SubLexer):
         if next_character != tokens.DATETIME_SEPARATOR:
             try:
                 return tokens.Token(tokens.TokenType.DATE_LITERAL,
-                                    self.start_line_num,
-                                    self.start_line_pos,
-                                    self.start_absolute_pos,
+                                    self.start_file_pos,
                                     tokens.DateValue(values[0], values[1], values[2]))
             except ValueError as e:
                 self.make_error(str(e))
@@ -265,9 +250,7 @@ class NumericalLiteralSubLexer(SubLexer):
 
         try:
             return tokens.Token(tokens.TokenType.DATETIME_LITERAL,
-                                self.start_line_num,
-                                self.start_line_pos,
-                                self.start_absolute_pos,
+                                self.start_file_pos,
                                 tokens.DateTimeValue(values[0], values[1], values[2], values[3], values[4], values[5]))
         except ValueError as e:
             self.make_error(str(e))
@@ -286,9 +269,7 @@ class NumericalLiteralSubLexer(SubLexer):
 
         try:
             return tokens.Token(tokens.TokenType.TIME_LITERAL,
-                                self.start_line_num,
-                                self.start_line_pos,
-                                self.start_absolute_pos,
+                                self.start_file_pos,
                                 tokens.TimeValue(values[0], values[1], values[2]))
         except ValueError as e:
             self.make_error(str(e))
@@ -315,10 +296,7 @@ class StringLiteralSubLexer(SubLexer):
             string_value += self.source_reader.get()
             next_character = self.source_reader.peek()
             if self.source_reader.ended():
-                error_handling.report_lexical_warning(self.start_line_num,
-                                                      self.start_line_pos,
-                                                      self.start_absolute_pos,
-                                                      self.source_reader,
+                error_handling.report_lexical_warning(self.start_file_pos,
                                                       "File ended before end of string bounds",
                                                       "Ignoring")
                 next_character = tokens.STRING_BOUND
@@ -326,9 +304,7 @@ class StringLiteralSubLexer(SubLexer):
         self.source_reader.get()
 
         return tokens.Token(tokens.TokenType.STRING_LITERAL,
-                            self.start_line_num,
-                            self.start_line_pos,
-                            self.start_absolute_pos,
+                            self.start_file_pos,
                             string_value)
 
 
@@ -358,7 +334,7 @@ class TimedeltaLiteralSubLexer(SubLexer):
                     "Timedelta literal is too long. Maximum size is {} characters (excluding bounds)".format(
                         self.MAX_TIMEDELTA_LITERAL_LENGTH))
             if next_character.isdigit():
-                number_value = NumberLiteralSubLexer(self.source_reader).get().value
+                number_value = NumberLiteralSubLexer(self.source_reader).get().get_value()
 
                 next_character = self.source_reader.peek()
 
@@ -375,10 +351,7 @@ class TimedeltaLiteralSubLexer(SubLexer):
                 self.source_reader.get()
                 next_character = self.source_reader.peek()
             elif self.source_reader.ended():
-                error_handling.report_lexical_warning(self.start_line_num,
-                                                      self.start_line_pos,
-                                                      self.start_absolute_pos,
-                                                      self.source_reader,
+                error_handling.report_lexical_warning(self.start_file_pos,
                                                       "File ended before end of timedelta bounds",
                                                       "Ignoring")
                 next_character = tokens.TIMEDELTA_BOUND
@@ -388,9 +361,7 @@ class TimedeltaLiteralSubLexer(SubLexer):
         self.source_reader.get()  # consume ending bound
 
         return tokens.Token(tokens.TokenType.TIMEDELTA_LITERAL,
-                            self.start_line_num,
-                            self.start_line_pos,
-                            self.start_absolute_pos,
+                            self.start_file_pos,
                             tokens.TimedeltaValue(values_map["Y"],
                                                   values_map["M"],
                                                   values_map["W"],
@@ -405,28 +376,24 @@ class AmbiguousBinarySubLexer(SubLexer):
         first_character = self.source_reader.get()  # get first
         second_character = self.source_reader.peek()  # peek second
 
-        if second_character == tokens.ambiguous_binary_token_type_map[first_character][
-            'second_character']:  # if first+second is known
+        # if first+second is known
+        if second_character == tokens.ambiguous_binary_token_type_map[first_character]['second_character']:
             self.source_reader.get()  # consume second
-            token_type = tokens.ambiguous_binary_token_type_map[first_character][
-                'second_case_token_type']  # lookup first+second
+            # lookup first+second
+            token_type = tokens.ambiguous_binary_token_type_map[first_character]['second_case_token_type']
         else:
-            token_type = tokens.ambiguous_binary_token_type_map[first_character][
-                'first_case_token_type']  # lookup first
+            # lookup first
+            token_type = tokens.ambiguous_binary_token_type_map[first_character]['first_case_token_type']
 
         return tokens.Token(token_type,
-                            self.start_line_num,
-                            self.start_line_pos,
-                            self.start_absolute_pos,
+                            self.start_file_pos,
                             None)
 
 
 class UnambiguousSingularSubLexer(SubLexer):
     def get(self):
         return tokens.Token(tokens.unambiguous_singular_token_type_map[self.source_reader.get()],
-                            self.start_line_num,
-                            self.start_line_pos,
-                            self.start_absolute_pos,
+                            self.start_file_pos,
                             None)
 
 
@@ -481,9 +448,7 @@ class Lexer(BaseLexer):
         return self._tokenize()
 
     def _skip_to_unskippable(self):
-        start_line_num, start_line_pos, start_absolute_pos = (self.source_reader.get_file_pos().get_line_num(),
-                                                              self.source_reader.get_file_pos().get_line_pos(),
-                                                              self.source_reader.get_file_pos().get_absolute_pos())
+        start_file_pos = self.source_reader.get_file_pos()
         character = self.source_reader.peek()
 
         counter = 0
@@ -492,10 +457,7 @@ class Lexer(BaseLexer):
             if counter >= self.MAX_SKIPPABLE_CHARACTERS_LENGTH:  # >= because we increase counter later
                 message = "Too many skippable characters. Maximum size is {} characters".format(
                     self.MAX_SKIPPABLE_CHARACTERS_LENGTH)
-                raise error_handling.LexicalError(start_line_num,
-                                                  start_line_pos,
-                                                  start_absolute_pos,
-                                                  self.source_reader,
+                raise error_handling.LexicalError(start_file_pos,
                                                   message)
 
             if is_comment_bound(character):
@@ -507,9 +469,7 @@ class Lexer(BaseLexer):
             character = self.source_reader.peek()
 
     def _skip_comment(self):
-        start_line_num, start_line_pos, start_absolute_pos = (self.source_reader.get_file_pos().get_line_num(),
-                                                              self.source_reader.get_file_pos().get_line_pos(),
-                                                              self.source_reader.get_file_pos().get_absolute_pos())
+        start_file_pos = self.source_reader.get_file_pos()
 
         self.source_reader.get()  # consume opening comment bound
 
@@ -521,16 +481,10 @@ class Lexer(BaseLexer):
             if counter > self.MAX_COMMENT_LENGTH:
                 message = "Comment is too long. Maximum size is {} characters (excluding bounds)".format(
                     self.MAX_COMMENT_LENGTH)
-                raise error_handling.LexicalError(start_line_num,
-                                                  start_line_pos,
-                                                  start_absolute_pos,
-                                                  self.source_reader,
+                raise error_handling.LexicalError(start_file_pos,
                                                   message)
             if self.source_reader.ended():  # comment unclosed before end of file
-                error_handling.report_lexical_warning(start_line_num,
-                                                      start_line_pos,
-                                                      start_absolute_pos,
-                                                      self.source_reader,
+                error_handling.report_lexical_warning(start_file_pos,
                                                       "File ended before end of comment",
                                                       "Ignoring")
                 return counter + 1
@@ -544,9 +498,7 @@ class Lexer(BaseLexer):
 
         if self.source_reader.ended():
             return tokens.Token(tokens.TokenType.END,
-                                self.source_reader.get_file_pos().get_line_num(),
-                                self.source_reader.get_file_pos().get_line_pos(),
-                                self.source_reader.get_file_pos().get_absolute_pos(), )
+                                self.source_reader.get_file_pos())
 
         if is_identifier_start(first_character):
             return IdentifierSubLexer(self.source_reader).get()
@@ -567,8 +519,5 @@ class Lexer(BaseLexer):
             return UnambiguousSingularSubLexer(self.source_reader).get()
 
         message = "Unexpected character, not recognizable by any rule"
-        raise error_handling.LexicalError(self.source_reader.get_file_pos().get_line_num(),
-                                          self.source_reader.get_file_pos().get_line_pos(),
-                                          self.source_reader.get_file_pos().get_absolute_pos(),
-                                          self.source_reader,
+        raise error_handling.LexicalError(self.source_reader.get_file_pos(),
                                           message)

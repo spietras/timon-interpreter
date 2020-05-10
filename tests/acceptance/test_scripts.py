@@ -23,15 +23,15 @@ class ScriptsTokensTestCase(unittest.TestCase):
 
         with FileReader(path) as fr:
             lex = Lexer(fr)
-            while not (read_tokens and read_tokens[-1].type == tokens.TokenType.END):
+            while not (read_tokens and read_tokens[-1].get_type() == tokens.TokenType.END):
                 read_tokens.append(lex.get())
 
         return read_tokens
 
     def assert_tokens(self, expected, actual):
         for i, (token, (expected_type, expected_value)) in enumerate(zip(actual, expected)):
-            self.assertEqual(expected_type, token.type, msg="Type mismatch for token number {}".format(i))
-            self.assertEqual(expected_value, token.value, msg="Value mismatch for token number {}".format(i))
+            self.assertEqual(expected_type, token.get_type(), msg="Type mismatch for token number {}".format(i))
+            self.assertEqual(expected_value, token.get_value(), msg="Value mismatch for token number {}".format(i))
 
     def test_script1(self):
         read_tokens = self.get_all_tokens(get_path('scripts/script1.tim'))

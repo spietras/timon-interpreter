@@ -22,7 +22,7 @@ class BaseParsingTestCase(unittest.TestCase):
 class ParsingLeafNodeTestCase(BaseParsingTestCase):
     def assert_node(self, expected_type, token_type):
         node = super().assert_node(expected_type, [])
-        self.assertEqual(node.token.type, token_type)
+        self.assertEqual(node.token.get_type(), token_type)
         return node
 
     @mock.patch('builtins.open', return_value=io.StringIO(";"))

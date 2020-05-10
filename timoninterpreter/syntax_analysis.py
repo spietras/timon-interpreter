@@ -48,8 +48,8 @@ class BaseNode(ABC):
 
     @staticmethod
     def make_error(token, expected_tokens, lexer):
-        raise SyntacticError(token, lexer.source_reader,
-                             "Expected one of {} but got {}".format(expected_tokens, token.type))
+        raise SyntacticError(token,
+                             "Expected one of {} but got {}".format(expected_tokens, token.get_type()))
 
 
 class SwitchNode(BaseNode, ABC):
@@ -61,7 +61,7 @@ class SwitchNode(BaseNode, ABC):
         token = lexer.peek()
 
         for node in self._starting_nodes():
-            if token.type in node.starting_token_types():
+            if token.get_type() in node.starting_token_types():
                 self.child = node(lexer)
                 return
 
@@ -79,7 +79,7 @@ class LeafNode(BaseNode, ABC):
     def __init__(self, lexer):
         super().__init__()
         self.token = lexer.peek()
-        if self.token.type != self.token_type():
+        if self.token.get_type() != self.token_type():
             self.make_error(self.token, {self.token_type()}, lexer)
         lexer.get()
 
@@ -248,10 +248,10 @@ class Program(BaseNode, Executable):
     def __init__(self, lexer):
         self.statements = []
         token = lexer.peek()
-        while token.type != tokens.TokenType.END:
-            if token.type in NonNestableStatement.starting_token_types():
+        while token.get_type() != tokens.TokenType.END:
+            if token.get_type() in NonNestableStatement.starting_token_types():
                 self.statements.append(NonNestableStatement(lexer))
-            elif token.type in NestableStatement.starting_token_types():
+            elif token.get_type() in NestableStatement.starting_token_types():
                 self.statements.append(NestableStatement(lexer))
             else:
                 self.make_error(token, self.starting_token_types(), lexer)
@@ -306,9 +306,9 @@ class IdentifierFirstStatement(BaseNode, Executable):
     def __init__(self, lexer):
         identifier = Identifier(lexer)
         token = lexer.peek()
-        if token.type in FunctionCall.starting_token_types():
+        if token.get_type() in FunctionCall.starting_token_types():
             self.statement = FunctionCall(lexer, identifier)
-        elif token.type in VariableAssignmentStatement.starting_token_types():
+        elif token.get_type() in VariableAssignmentStatement.starting_token_types():
             self.statement = VariableAssignmentStatement(lexer, identifier)
         else:
             self.make_error(token,
@@ -368,7 +368,7 @@ class VariableDefinitionStatement(BaseNode, Executable):
         self.identifier = Identifier(lexer)
         self.assignment = None
         token = lexer.peek()
-        if token.type in VariableAssignmentStatement.starting_token_types():
+        if token.get_type() in VariableAssignmentStatement.starting_token_types():
             self.assignment = VariableAssignmentStatement(lexer, self.identifier)
 
     @classmethod
@@ -392,7 +392,7 @@ class IfStatement(BaseNode, Executable):
         self.body = Body(lexer)
         self.else_body = None
         token = lexer.peek()
-        if token.type in ElseKeyword.starting_token_types():
+        if token.get_type() in ElseKeyword.starting_token_types():
             ElseKeyword(lexer)
             self.else_body = Body(lexer)
 
@@ -450,7 +450,7 @@ class ReturnStatement(BaseNode, SelfEvaluable):
         ReturnKeyword(lexer)
         self.expression = None
         token = lexer.peek()
-        if token.type in Expression.starting_token_types():
+        if token.get_type() in Expression.starting_token_types():
             self.expression = Expression(lexer)
 
     @classmethod
@@ -472,10 +472,10 @@ class ParametersDeclaration(BaseNode, SelfEvaluable):
         LeftParenthesis(lexer)
         self.parameters = []
         token = lexer.peek()
-        if token.type in Identifier.starting_token_types():
+        if token.get_type() in Identifier.starting_token_types():
             self.parameters.append(Identifier(lexer))
             token = lexer.peek()
-            while token.type in Comma.starting_token_types():
+            while token.get_type() in Comma.starting_token_types():
                 Comma(lexer)
                 self.parameters.append(Identifier(lexer))
                 token = lexer.peek()
@@ -497,7 +497,7 @@ class Body(BaseNode, Executable):
         LeftBracket(lexer)
         self.statements = []
         token = lexer.peek()
-        while token.type in NestableStatement.starting_token_types():
+        while token.get_type() in NestableStatement.starting_token_types():
             self.statements.append(NestableStatement(lexer))
             token = lexer.peek()
         RightBracket(lexer)
@@ -567,7 +567,7 @@ class Expression(BaseNode, SelfEvaluable):
         self.first_expression = LogicAndExpression(lexer)
         self.operations = []
         token = lexer.peek()
-        while token.type in OrOperator.starting_token_types():
+        while token.get_type() in OrOperator.starting_token_types():
             self.operations.append((OrOperator(lexer), LogicAndExpression(lexer)))
             token = lexer.peek()
 
@@ -587,7 +587,7 @@ class LogicAndExpression(BaseNode, SelfEvaluable):
         self.first_expression = LogicEqualityExpression(lexer)
         self.operations = []
         token = lexer.peek()
-        while token.type in AndOperator.starting_token_types():
+        while token.get_type() in AndOperator.starting_token_types():
             self.operations.append((AndOperator(lexer), LogicEqualityExpression(lexer)))
             token = lexer.peek()
 
@@ -607,7 +607,7 @@ class LogicEqualityExpression(BaseNode, SelfEvaluable):
         self.first_expression = LogicRelationalExpression(lexer)
         self.operator = None
         token = lexer.peek()
-        if token.type in EqualityOperator.starting_token_types():
+        if token.get_type() in EqualityOperator.starting_token_types():
             self.operator = EqualityOperator(lexer)
             self.second_expression = LogicRelationalExpression(lexer)
 
@@ -630,7 +630,7 @@ class LogicRelationalExpression(BaseNode, SelfEvaluable):
         self.first_expression = LogicTerm(lexer)
         self.operator = None
         token = lexer.peek()
-        if token.type in RelationOperator.starting_token_types():
+        if token.get_type() in RelationOperator.starting_token_types():
             self.operator = RelationOperator(lexer)
             self.second_expression = LogicTerm(lexer)
 
@@ -652,7 +652,7 @@ class LogicTerm(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
         self.negation = None
         token = lexer.peek()
-        if token.type in LogicNegationOperator.starting_token_types():
+        if token.get_type() in LogicNegationOperator.starting_token_types():
             self.negation = LogicNegationOperator(lexer)
         self.expression = MathExpression(lexer)
 
@@ -675,7 +675,7 @@ class MathExpression(BaseNode, SelfEvaluable):
         self.first_expression = MultiplicativeMathExpression(lexer)
         self.operations = []
         token = lexer.peek()
-        while token.type in AdditiveOperator.starting_token_types():
+        while token.get_type() in AdditiveOperator.starting_token_types():
             self.operations.append((AdditiveOperator(lexer), MultiplicativeMathExpression(lexer)))
             token = lexer.peek()
 
@@ -695,7 +695,7 @@ class MultiplicativeMathExpression(BaseNode, SelfEvaluable):
         self.first_expression = MathTerm(lexer)
         self.operations = []
         token = lexer.peek()
-        while token.type in MultiplicativeOperator.starting_token_types():
+        while token.get_type() in MultiplicativeOperator.starting_token_types():
             self.operations.append((MultiplicativeOperator(lexer), MathTerm(lexer)))
             token = lexer.peek()
 
@@ -714,12 +714,12 @@ class MathTerm(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
         self.negation = None
         token = lexer.peek()
-        if token.type in MathNegationOperator.starting_token_types():
+        if token.get_type() in MathNegationOperator.starting_token_types():
             self.negation = MathNegationOperator(lexer)
         token = lexer.peek()
-        if token.type in Value.starting_token_types():
+        if token.get_type() in Value.starting_token_types():
             self.term = Value(lexer)
-        elif token.type in ParenthesisedExpression.starting_token_types():
+        elif token.get_type() in ParenthesisedExpression.starting_token_types():
             self.term = ParenthesisedExpression(lexer)
         else:
             self.make_error(token, self.starting_token_types(), lexer)
@@ -1065,9 +1065,9 @@ class IdentifierFirstValue(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
         identifier = Identifier(lexer)
         token = lexer.peek()
-        if token.type in FunctionCall.starting_token_types():
+        if token.get_type() in FunctionCall.starting_token_types():
             self.value = FunctionCall(lexer, identifier)
-        elif token.type in TimeInfoAccess.starting_token_types():
+        elif token.get_type() in TimeInfoAccess.starting_token_types():
             self.value = TimeInfoAccess(lexer, identifier)
         else:
             self.value = identifier
@@ -1105,10 +1105,10 @@ class ParametersCall(BaseNode, SelfEvaluable):
         LeftParenthesis(lexer)
         self.parameters = []
         token = lexer.peek()
-        if token.type in Expression.starting_token_types():
+        if token.get_type() in Expression.starting_token_types():
             self.parameters.append(Expression(lexer))
             token = lexer.peek()
-            while token.type in Comma.starting_token_types():
+            while token.get_type() in Comma.starting_token_types():
                 Comma(lexer)
                 self.parameters.append(Expression(lexer))
                 token = lexer.peek()

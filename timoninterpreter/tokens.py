@@ -4,8 +4,8 @@ Module containing lexical tokens and related info
 
 """
 
-from enum import Enum, auto
 from datetime import date, time
+from enum import Enum, auto
 
 
 class NoValueEnum(Enum):
@@ -14,52 +14,61 @@ class NoValueEnum(Enum):
 
 
 class TokenType(NoValueEnum):
-    IDENTIFIER          = auto()
-    FUN                 = auto()
-    VAR                 = auto()
-    IF                  = auto()
-    ELSE                = auto()
-    FROM                = auto()
-    PRINT               = auto()
-    RETURN              = auto()
-    TO                  = auto()
-    BY                  = auto()
-    AS                  = auto()
-    YEARS               = auto()
-    MONTHS              = auto()
-    WEEKS               = auto()
-    DAYS                = auto()
-    HOURS               = auto()
-    MINUTES             = auto()
-    SECONDS             = auto()
-    SEMICOLON           = auto()
-    LEFT_PARENTHESIS    = auto()
-    RIGHT_PARENTHESIS   = auto()
-    COMMA               = auto()
-    LEFT_BRACKET        = auto()
-    RIGHT_BRACKET       = auto()
-    ASSIGN              = auto()
-    LOGICAL_OR          = auto()
-    LOGICAL_AND         = auto()
-    EQUALS              = auto()
-    NOT_EQUALS          = auto()
-    GREATER             = auto()
-    GREATER_OR_EQUAL    = auto()
-    LESS                = auto()
-    LESS_OR_EQUAL       = auto()
-    NOT                 = auto()
-    PLUS                = auto()
-    MINUS               = auto()
-    MULTIPLICATION      = auto()
-    DIVISION            = auto()
-    ACCESS              = auto()
-    END                 = auto()
-    STRING_LITERAL      = auto()
-    NUMBER_LITERAL      = auto()
-    DATE_LITERAL        = auto()
-    DATETIME_LITERAL    = auto()
-    TIME_LITERAL        = auto()
-    TIMEDELTA_LITERAL   = auto()
+    IDENTIFIER = auto()
+    FUN = auto()
+    VAR = auto()
+    IF = auto()
+    ELSE = auto()
+    FROM = auto()
+    PRINT = auto()
+    RETURN = auto()
+    TO = auto()
+    BY = auto()
+    AS = auto()
+    YEARS = auto()
+    MONTHS = auto()
+    WEEKS = auto()
+    DAYS = auto()
+    HOURS = auto()
+    MINUTES = auto()
+    SECONDS = auto()
+    SEMICOLON = auto()
+    LEFT_PARENTHESIS = auto()
+    RIGHT_PARENTHESIS = auto()
+    COMMA = auto()
+    LEFT_BRACKET = auto()
+    RIGHT_BRACKET = auto()
+    ASSIGN = auto()
+    LOGICAL_OR = auto()
+    LOGICAL_AND = auto()
+    EQUALS = auto()
+    NOT_EQUALS = auto()
+    GREATER = auto()
+    GREATER_OR_EQUAL = auto()
+    LESS = auto()
+    LESS_OR_EQUAL = auto()
+    NOT = auto()
+    PLUS = auto()
+    MINUS = auto()
+    MULTIPLICATION = auto()
+    DIVISION = auto()
+    ACCESS = auto()
+    END = auto()
+    STRING_LITERAL = auto()
+    NUMBER_LITERAL = auto()
+    DATE_LITERAL = auto()
+    DATETIME_LITERAL = auto()
+    TIME_LITERAL = auto()
+    TIMEDELTA_LITERAL = auto()
+
+    def __str__(self):
+        if self in static_type_to_string_map:
+            return static_type_to_string_map[self]
+
+        return str(self.name)
+
+    def __repr__(self):
+        return self.__str__()
 
 
 # Processed from bound to bound
@@ -75,10 +84,14 @@ ESCAPE = '\\'
 
 # Ambiguous characters, determining token after first and second character
 ambiguous_binary_token_type_map = {
-    '=': {"second_character": '=', "first_case_token_type": TokenType.ASSIGN, "second_case_token_type": TokenType.EQUALS},
-    '!': {"second_character": '=', "first_case_token_type": TokenType.NOT, "second_case_token_type": TokenType.NOT_EQUALS},
-    '>': {"second_character": '=', "first_case_token_type": TokenType.GREATER, "second_case_token_type": TokenType.GREATER_OR_EQUAL},
-    '<': {"second_character": '=', "first_case_token_type": TokenType.LESS, "second_case_token_type": TokenType.LESS_OR_EQUAL},
+    '=': {"second_character": '=', "first_case_token_type": TokenType.ASSIGN,
+          "second_case_token_type": TokenType.EQUALS},
+    '!': {"second_character": '=', "first_case_token_type": TokenType.NOT,
+          "second_case_token_type": TokenType.NOT_EQUALS},
+    '>': {"second_character": '=', "first_case_token_type": TokenType.GREATER,
+          "second_case_token_type": TokenType.GREATER_OR_EQUAL},
+    '<': {"second_character": '=', "first_case_token_type": TokenType.LESS,
+          "second_case_token_type": TokenType.LESS_OR_EQUAL},
 }
 
 # Unambiguous single character tokens
@@ -98,25 +111,24 @@ unambiguous_singular_token_type_map = {
     ',': TokenType.COMMA,
 }
 
-
 keyword_token_type_map = {
-    "fun"       : TokenType.FUN,
-    "var"       : TokenType.VAR,
-    "if"        : TokenType.IF,
-    "else"      : TokenType.ELSE,
-    "from"      : TokenType.FROM,
-    "print"     : TokenType.PRINT,
-    "return"    : TokenType.RETURN,
-    "to"        : TokenType.TO,
-    "by"        : TokenType.BY,
-    "as"        : TokenType.AS,
-    "years"     : TokenType.YEARS,
-    "months"    : TokenType.MONTHS,
-    "weeks"     : TokenType.WEEKS,
-    "days"      : TokenType.DAYS,
-    "hours"     : TokenType.HOURS,
-    "minutes"   : TokenType.MINUTES,
-    "seconds"   : TokenType.SECONDS
+    "fun": TokenType.FUN,
+    "var": TokenType.VAR,
+    "if": TokenType.IF,
+    "else": TokenType.ELSE,
+    "from": TokenType.FROM,
+    "print": TokenType.PRINT,
+    "return": TokenType.RETURN,
+    "to": TokenType.TO,
+    "by": TokenType.BY,
+    "as": TokenType.AS,
+    "years": TokenType.YEARS,
+    "months": TokenType.MONTHS,
+    "weeks": TokenType.WEEKS,
+    "days": TokenType.DAYS,
+    "hours": TokenType.HOURS,
+    "minutes": TokenType.MINUTES,
+    "seconds": TokenType.SECONDS
 }
 
 additional_identifier_characters = ['_']
@@ -125,7 +137,8 @@ static_type_to_string_map = {}
 static_type_to_string_map.update({v: k for k, v in keyword_token_type_map.items()})
 static_type_to_string_map.update({v: k for k, v in unambiguous_singular_token_type_map.items()})
 static_type_to_string_map.update({v["first_case_token_type"]: k for k, v in ambiguous_binary_token_type_map.items()})
-static_type_to_string_map.update({v["second_case_token_type"]: k + v["second_character"] for k, v in ambiguous_binary_token_type_map.items()})
+static_type_to_string_map.update(
+    {v["second_case_token_type"]: k + v["second_character"] for k, v in ambiguous_binary_token_type_map.items()})
 
 
 class DateValue:
@@ -133,7 +146,8 @@ class DateValue:
         try:
             self._date = date(year, month, day)
         except ValueError as e:
-            raise ValueError("{}. Passed values were: year={}, month={}, day={}".format(str(e).capitalize(), year, month, day))
+            raise ValueError(
+                "{}. Passed values were: year={}, month={}, day={}".format(str(e).capitalize(), year, month, day))
 
     def __eq__(self, other):
         if not isinstance(other, DateValue):
@@ -159,7 +173,9 @@ class TimeValue:
         try:
             self._time = time(hour, minute, second)
         except ValueError as e:
-            raise ValueError("{}. Passed values were: hour={}, minute={}, second={}".format(str(e).capitalize(), hour, minute, second))
+            raise ValueError(
+                "{}. Passed values were: hour={}, minute={}, second={}".format(str(e).capitalize(), hour, minute,
+                                                                               second))
 
     def __eq__(self, other):
         if not isinstance(other, TimeValue):
@@ -197,11 +213,11 @@ class DateTimeValue(DateValue, TimeValue):
 
 class TimedeltaValue:
     def __init__(self, years=None, months=None, weeks=None, days=None, hours=None, minutes=None, seconds=None):
-        self._set_time_value("_years",   years)
-        self._set_time_value("_months",  months)
-        self._set_time_value("_weeks",   weeks)
-        self._set_time_value("_days",    days)
-        self._set_time_value("_hours",   hours)
+        self._set_time_value("_years", years)
+        self._set_time_value("_months", months)
+        self._set_time_value("_weeks", weeks)
+        self._set_time_value("_days", days)
+        self._set_time_value("_hours", hours)
         self._set_time_value("_minutes", minutes)
         self._set_time_value("_seconds", seconds)
 
@@ -264,23 +280,53 @@ class TimedeltaValue:
 
 
 token_value_valid_types_map = {
-    TokenType.IDENTIFIER        : str,
-    TokenType.STRING_LITERAL    : str,
-    TokenType.NUMBER_LITERAL    : int,
-    TokenType.DATE_LITERAL      : DateValue,
-    TokenType.DATETIME_LITERAL  : DateTimeValue,
-    TokenType.TIME_LITERAL      : TimeValue,
-    TokenType.TIMEDELTA_LITERAL : TimedeltaValue
+    TokenType.IDENTIFIER: str,
+    TokenType.STRING_LITERAL: str,
+    TokenType.NUMBER_LITERAL: int,
+    TokenType.DATE_LITERAL: DateValue,
+    TokenType.DATETIME_LITERAL: DateTimeValue,
+    TokenType.TIME_LITERAL: TimeValue,
+    TokenType.TIMEDELTA_LITERAL: TimedeltaValue
 }
 
 
 class Token:
     """
     Token class
+    """
 
-    Attributes:
-        type: type of the token
-        value: value of the token
+    def __init__(self, token_type, file_pos, value=None):
+        value_type = token_value_valid_types_map.get(token_type, type(None))
+        if type(value) is not value_type:
+            raise ValueError(
+                "Token value type mismatch. Expected {}, but got {} for {}".format(value_type, type(value), token_type))
+        self._type = token_type
+        self._value = value
+        self._file_pos = file_pos
+
+    def __str__(self):
+        if self._type == TokenType.END:
+            return "END"
+
+        if self._type == TokenType.STRING_LITERAL:
+            return '{0}{1}{0}'.format(STRING_BOUND, self._value)
+
+        if self._value is None:
+            return static_type_to_string_map[self._type]
+
+        return str(self._value)
+
+    def get_type(self):
+        """
+        Returns:
+            type of the token
+        """
+        return self._type
+
+    def get_value(self):
+        """
+        Returns:
+            value of the token:
                - string for IDENTIFIER
                - string for STRING_LITERAL
                - int for NUMBER_LITERAL
@@ -289,28 +335,12 @@ class Token:
                - TimeValue for TIME_LITERAL
                - TimedeltaValue for TIMEDELTA_LITERAL
                - None for others
-        line_num: number of line where the token was found
-        line_pos: position in line where the token was found
-        absolute_pos: position from the beginning where the token was found
-    """
-    def __init__(self, token_type, line_num, line_pos, absolute_pos, value=None):
-        value_type = token_value_valid_types_map.get(token_type, type(None))
-        if type(value) is not value_type:
-            raise ValueError("Token value type mismatch. Expected {}, but got {} for {}".format(value_type, type(value), token_type))
-        self.type = token_type
-        self.value = value
-        self.line_num = line_num
-        self.line_pos = line_pos
-        self.absolute_pos = absolute_pos
+        """
+        return self._value
 
-    def __str__(self):
-        if self.type == TokenType.END:
-            return "END"
-
-        if self.type == TokenType.STRING_LITERAL:
-            return '{0}{1}{0}'.format(STRING_BOUND, self.value)
-
-        if self.value is None:
-            return static_type_to_string_map[self.type]
-
-        return str(self.value)
+    def get_file_pos(self):
+        """
+        Returns:
+            position of token in the file
+        """
+        return self._file_pos

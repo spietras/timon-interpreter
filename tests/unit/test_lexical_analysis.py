@@ -14,8 +14,8 @@ class BaseLexerTestCase(unittest.TestCase):
         with FileReader("whatever") as fr:
             for expected_type, expected_value in expectations:
                 token = Lexer(fr).get()
-                self.assertEqual(expected_type, token.type)
-                self.assertEqual(expected_value, token.value)
+                self.assertEqual(expected_type, token.get_type())
+                self.assertEqual(expected_value, token.get_value())
 
     def assert_token(self, expected_type, expected_value):
         self.assert_tokens([(expected_type, expected_value)])
@@ -462,25 +462,25 @@ class LexerMiscellaneousTestCase(BaseLexerTestCase):
     def test_get_token_position_at_start(self, mock_open):
         with FileReader("whatever") as fr:
             token = Lexer(fr).get()
-            self.assertEqual(1, token.line_num)
-            self.assertEqual(0, token.line_pos)
-            self.assertEqual(0, token.absolute_pos)
+            self.assertEqual(1, token.get_file_pos().get_line_num())
+            self.assertEqual(0, token.get_file_pos().get_line_pos())
+            self.assertEqual(0, token.get_file_pos().get_absolute_pos())
 
     @mock.patch('builtins.open', return_value=io.StringIO("\n \n \nabc"))
     def test_get_token_position_at_line_start(self, mock_open):
         with FileReader("whatever") as fr:
             token = Lexer(fr).get()
-            self.assertEqual(4, token.line_num)
-            self.assertEqual(0, token.line_pos)
-            self.assertEqual(5, token.absolute_pos)
+            self.assertEqual(4, token.get_file_pos().get_line_num())
+            self.assertEqual(0, token.get_file_pos().get_line_pos())
+            self.assertEqual(5, token.get_file_pos().get_absolute_pos())
 
     @mock.patch('builtins.open', return_value=io.StringIO("\n \n \n #abc# abc"))
     def test_get_token_position_at_line_middle(self, mock_open):
         with FileReader("whatever") as fr:
             token = Lexer(fr).get()
-            self.assertEqual(4, token.line_num)
-            self.assertEqual(7, token.line_pos)
-            self.assertEqual(12, token.absolute_pos)
+            self.assertEqual(4, token.get_file_pos().get_line_num())
+            self.assertEqual(7, token.get_file_pos().get_line_pos())
+            self.assertEqual(12, token.get_file_pos().get_absolute_pos())
 
 
 # noinspection PyUnusedLocal
@@ -490,19 +490,19 @@ class LexerPeekTestCase(BaseLexerTestCase):
         with FileReader("whatever") as fr:
             lex = Lexer(fr)
             token = lex.peek()
-            self.assertEqual(tokens.TokenType.IDENTIFIER, token.type)
-            self.assertEqual('a', token.value)
+            self.assertEqual(tokens.TokenType.IDENTIFIER, token.get_type())
+            self.assertEqual('a', token.get_value())
             token = lex.get()
-            self.assertEqual(tokens.TokenType.IDENTIFIER, token.type)
-            self.assertEqual('a', token.value)
+            self.assertEqual(tokens.TokenType.IDENTIFIER, token.get_type())
+            self.assertEqual('a', token.get_value())
 
     @mock.patch('builtins.open', return_value=io.StringIO(" a b c "))
     def test_peek_multiple_times(self, mock_open):
         with FileReader("whatever") as fr:
             lex = Lexer(fr)
             token = lex.peek()
-            self.assertEqual(tokens.TokenType.IDENTIFIER, token.type)
-            self.assertEqual('a', token.value)
+            self.assertEqual(tokens.TokenType.IDENTIFIER, token.get_type())
+            self.assertEqual('a', token.get_value())
             token = lex.peek()
-            self.assertEqual(tokens.TokenType.IDENTIFIER, token.type)
-            self.assertEqual('a', token.value)
+            self.assertEqual(tokens.TokenType.IDENTIFIER, token.get_type())
+            self.assertEqual('a', token.get_value())

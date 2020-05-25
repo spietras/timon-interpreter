@@ -15,6 +15,9 @@ class BaseNode(ABC):
     Node base class
     """
 
+    def reduce(self):
+        return self
+
     @classmethod
     def starting_token_types(cls):
         """
@@ -52,7 +55,7 @@ class BaseNode(ABC):
 
         for node in possible_nodes:
             if token.get_type() in node.starting_token_types():
-                return node(lexer)
+                return node(lexer).reduce()
 
         if not required:
             return None
@@ -95,6 +98,14 @@ class LeafNode(BaseNode, ABC):
 
     def get_children(self):
         return []
+
+
+class ReducibleNode(BaseNode, ABC):
+    def reduce(self):
+        if len(self.get_children()) == 1:
+            return self.get_children()[0]
+
+        return self
 
 
 class BinaryEvaluable(ABC):
@@ -262,7 +273,7 @@ class Program(BaseNode, Executable):
         pass
 
 
-class IdentifierFirstStatement(BaseNode, Executable):
+class IdentifierFirstStatement(ReducibleNode, Executable):
     def __init__(self, lexer):
         identifier = Identifier(lexer)
         token = lexer.peek()
@@ -292,7 +303,7 @@ class VariableAssignmentStatement(BaseNode, Executable):
                  identifier):  # have to pass identifier as it was already parsed above (because of ambiguity)
         self.identifier = identifier
         Assign(lexer)
-        self.expression = Expression(lexer)
+        self.expression = Expression(lexer).reduce()
 
     @classmethod
     def _starting_nodes(cls):
@@ -351,7 +362,7 @@ class VariableDefinitionStatement(BaseNode, Executable):
 class IfStatement(BaseNode, Executable):
     def __init__(self, lexer):
         IfKeyword(lexer)
-        self.expression = Expression(lexer)
+        self.expression = Expression(lexer).reduce()
         self.body = Body(lexer)
         self.else_body = None
         token = lexer.peek()
@@ -377,9 +388,19 @@ class IfStatement(BaseNode, Executable):
 class FromStatement(BaseNode, Executable):
     def __init__(self, lexer):
         FromKeyword(lexer)
-        self.range = FromRange(lexer)
-        self.step = FromStep(lexer)
-        self.iterator = FromIterator(lexer)
+        self.start = Expression(lexer).reduce()
+        ToKeyword(lexer)
+        self.end = Expression(lexer).reduce()
+        ByKeyword(lexer)
+        self.time_unit = self.choose_and_build_node(lexer, {Years,
+                                                            Months,
+                                                            Weeks,
+                                                            Days,
+                                                            Hours,
+                                                            Minutes,
+                                                            Seconds})
+        AsKeyword(lexer)
+        self.identifier = Identifier(lexer)
         self.body = Body(lexer)
         Semicolon(lexer)
 
@@ -388,7 +409,7 @@ class FromStatement(BaseNode, Executable):
         return {FromKeyword}
 
     def get_children(self):
-        return [self.range, self.step, self.iterator, self.body]
+        return [self.start, self.end, self.time_unit, self.identifier, self.body]
 
     def execute(self, environment):
         pass
@@ -397,7 +418,7 @@ class FromStatement(BaseNode, Executable):
 class PrintStatement(BaseNode, Executable):
     def __init__(self, lexer):
         PrintKeyword(lexer)
-        self.expression = Expression(lexer)
+        self.expression = Expression(lexer).reduce()
         Semicolon(lexer)
 
     @classmethod
@@ -415,6 +436,8 @@ class ReturnStatement(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
         ReturnKeyword(lexer)
         self.expression = self.choose_and_build_node(lexer, {Expression}, required=False)
+        if self.expression:
+            self.expression = self.expression.reduce()
         Semicolon(lexer)
 
     @classmethod
@@ -485,68 +508,13 @@ class Body(BaseNode, Executable):
         pass
 
 
-class FromRange(BaseNode, SelfEvaluable):
+class Expression(ReducibleNode, SelfEvaluable):
     def __init__(self, lexer):
-        self.start = Expression(lexer)
-        ToKeyword(lexer)
-        self.end = Expression(lexer)
-
-    @classmethod
-    def _starting_nodes(cls):
-        return {Expression}
-
-    def get_children(self):
-        return [self.start, self.end]
-
-    def evaluate(self, environment):
-        pass
-
-
-class FromStep(BaseNode, SelfEvaluable):
-    def __init__(self, lexer):
-        ByKeyword(lexer)
-        self.time_unit = self.choose_and_build_node(lexer, {Years,
-                                                            Months,
-                                                            Weeks,
-                                                            Days,
-                                                            Hours,
-                                                            Minutes,
-                                                            Seconds})
-
-    @classmethod
-    def _starting_nodes(cls):
-        return {ByKeyword}
-
-    def get_children(self):
-        return [self.time_unit]
-
-    def evaluate(self, environment):
-        pass
-
-
-class FromIterator(BaseNode, SelfEvaluable):
-    def __init__(self, lexer):
-        AsKeyword(lexer)
-        self.identifier = Identifier(lexer)
-
-    @classmethod
-    def _starting_nodes(cls):
-        return {AsKeyword}
-
-    def get_children(self):
-        return [self.identifier]
-
-    def evaluate(self, environment):
-        pass
-
-
-class Expression(BaseNode, SelfEvaluable):
-    def __init__(self, lexer):
-        self.first_expression = LogicAndExpression(lexer)
+        self.first_expression = LogicAndExpression(lexer).reduce()
         self.operations = []
         token = lexer.peek()
         while token.get_type() in OrOperator.starting_token_types():
-            self.operations.append((OrOperator(lexer), LogicAndExpression(lexer)))
+            self.operations.append((OrOperator(lexer), LogicAndExpression(lexer).reduce()))
             token = lexer.peek()
 
     @classmethod
@@ -560,13 +528,13 @@ class Expression(BaseNode, SelfEvaluable):
         pass
 
 
-class LogicAndExpression(BaseNode, SelfEvaluable):
+class LogicAndExpression(ReducibleNode, SelfEvaluable):
     def __init__(self, lexer):
-        self.first_expression = LogicEqualityExpression(lexer)
+        self.first_expression = LogicEqualityExpression(lexer).reduce()
         self.operations = []
         token = lexer.peek()
         while token.get_type() in AndOperator.starting_token_types():
-            self.operations.append((AndOperator(lexer), LogicEqualityExpression(lexer)))
+            self.operations.append((AndOperator(lexer), LogicEqualityExpression(lexer).reduce()))
             token = lexer.peek()
 
     @classmethod
@@ -580,12 +548,12 @@ class LogicAndExpression(BaseNode, SelfEvaluable):
         pass
 
 
-class LogicEqualityExpression(BaseNode, SelfEvaluable):
+class LogicEqualityExpression(ReducibleNode, SelfEvaluable):
     def __init__(self, lexer):
-        self.first_expression = LogicRelationalExpression(lexer)
+        self.first_expression = LogicRelationalExpression(lexer).reduce()
         self.operator = self.choose_and_build_node(lexer, {EqualOperator, NotEqualOperator}, required=False)
         if self.operator:
-            self.second_expression = LogicRelationalExpression(lexer)
+            self.second_expression = LogicRelationalExpression(lexer).reduce()
 
     @classmethod
     def _starting_nodes(cls):
@@ -601,12 +569,13 @@ class LogicEqualityExpression(BaseNode, SelfEvaluable):
         pass
 
 
-class LogicRelationalExpression(BaseNode, SelfEvaluable):
+class LogicRelationalExpression(ReducibleNode, SelfEvaluable):
     def __init__(self, lexer):
-        self.first_expression = LogicTerm(lexer)
-        self.operator = self.choose_and_build_node(lexer, {GreaterOperator, GreaterOrEqualOperator, LessOperator, LessOrEqualOperator}, required=False)
+        self.first_expression = LogicTerm(lexer).reduce()
+        self.operator = self.choose_and_build_node(lexer, {GreaterOperator, GreaterOrEqualOperator, LessOperator,
+                                                           LessOrEqualOperator}, required=False)
         if self.operator:
-            self.second_expression = LogicTerm(lexer)
+            self.second_expression = LogicTerm(lexer).reduce()
 
     @classmethod
     def _starting_nodes(cls):
@@ -622,10 +591,10 @@ class LogicRelationalExpression(BaseNode, SelfEvaluable):
         pass
 
 
-class LogicTerm(BaseNode, SelfEvaluable):
+class LogicTerm(ReducibleNode, SelfEvaluable):
     def __init__(self, lexer):
         self.negation = self.choose_and_build_node(lexer, {LogicNegationOperator}, required=False)
-        self.expression = MathExpression(lexer)
+        self.expression = MathExpression(lexer).reduce()
 
     @classmethod
     def _starting_nodes(cls):
@@ -641,13 +610,13 @@ class LogicTerm(BaseNode, SelfEvaluable):
         pass
 
 
-class MathExpression(BaseNode, SelfEvaluable):
+class MathExpression(ReducibleNode, SelfEvaluable):
     def __init__(self, lexer):
-        self.first_expression = MultiplicativeMathExpression(lexer)
+        self.first_expression = MultiplicativeMathExpression(lexer).reduce()
         self.operations = []
         operator = self.choose_and_build_node(lexer, {PlusOperator, MinusOperator}, required=False)
         while operator:
-            self.operations.append((operator, MultiplicativeMathExpression(lexer)))
+            self.operations.append((operator, MultiplicativeMathExpression(lexer).reduce()))
             operator = self.choose_and_build_node(lexer, {PlusOperator, MinusOperator}, required=False)
 
     @classmethod
@@ -661,13 +630,13 @@ class MathExpression(BaseNode, SelfEvaluable):
         pass
 
 
-class MultiplicativeMathExpression(BaseNode, SelfEvaluable):
+class MultiplicativeMathExpression(ReducibleNode, SelfEvaluable):
     def __init__(self, lexer):
-        self.first_expression = MathTerm(lexer)
+        self.first_expression = MathTerm(lexer).reduce()
         self.operations = []
         operator = self.choose_and_build_node(lexer, {MultiplyOperator, DivisionOperator}, required=False)
         while operator:
-            self.operations.append((operator, MathTerm(lexer)))
+            self.operations.append((operator, MathTerm(lexer).reduce()))
             operator = self.choose_and_build_node(lexer, {MultiplyOperator, DivisionOperator}, required=False)
 
     @classmethod
@@ -681,7 +650,7 @@ class MultiplicativeMathExpression(BaseNode, SelfEvaluable):
         pass
 
 
-class MathTerm(BaseNode, SelfEvaluable):
+class MathTerm(ReducibleNode, SelfEvaluable):
     def __init__(self, lexer):
         self.negation = self.choose_and_build_node(lexer, {MathNegationOperator}, required=False)
         self.term = self.choose_and_build_node(lexer, {NumberLiteral,
@@ -715,10 +684,10 @@ class MathTerm(BaseNode, SelfEvaluable):
         pass
 
 
-class ParenthesisedExpression(BaseNode, SelfEvaluable):
+class ParenthesisedExpression(ReducibleNode, SelfEvaluable):
     def __init__(self, lexer):
         LeftParenthesis(lexer)
-        self.expression = Expression(lexer)
+        self.expression = Expression(lexer).reduce()
         RightParenthesis(lexer)
 
     @classmethod
@@ -975,7 +944,7 @@ class TimedeltaLiteral(LeafNode, SelfEvaluable):
         pass
 
 
-class IdentifierFirstValue(BaseNode, SelfEvaluable):
+class IdentifierFirstValue(ReducibleNode, SelfEvaluable):
     def __init__(self, lexer):
         identifier = Identifier(lexer)
         token = lexer.peek()
@@ -1020,11 +989,11 @@ class ParametersCall(BaseNode, SelfEvaluable):
         self.parameters = []
         token = lexer.peek()
         if token.get_type() in Expression.starting_token_types():
-            self.parameters.append(Expression(lexer))
+            self.parameters.append(Expression(lexer).reduce())
             token = lexer.peek()
             while token.get_type() in Comma.starting_token_types():
                 Comma(lexer)
-                self.parameters.append(Expression(lexer))
+                self.parameters.append(Expression(lexer).reduce())
                 token = lexer.peek()
         RightParenthesis(lexer)
 

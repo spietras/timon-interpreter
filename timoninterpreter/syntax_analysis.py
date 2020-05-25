@@ -47,28 +47,22 @@ class BaseNode(ABC):
         pass
 
     @staticmethod
+    def choose_and_build_node(lexer, possible_nodes, required=True):
+        token = lexer.peek()
+
+        for node in possible_nodes:
+            if token.get_type() in node.starting_token_types():
+                return node(lexer)
+
+        if not required:
+            return None
+
+        BaseNode.make_error(token, {t for n in possible_nodes for t in n.starting_token_types()}, lexer)
+
+    @staticmethod
     def make_error(token, expected_tokens, lexer):
         raise SyntacticError(token,
                              "Expected one of {} but got {}".format(expected_tokens, token.get_type()))
-
-
-class SwitchNode(BaseNode, ABC):
-    """
-    Node type for nodes with multiple possible child types
-    """
-
-    def __init__(self, lexer):
-        token = lexer.peek()
-
-        for node in self._starting_nodes():
-            if token.get_type() in node.starting_token_types():
-                self.child = node(lexer)
-                return
-
-        self.make_error(token, self.starting_token_types(), lexer)
-
-    def get_children(self):
-        return [self.child]
 
 
 class LeafNode(BaseNode, ABC):
@@ -249,54 +243,20 @@ class Program(BaseNode, Executable):
         self.statements = []
         token = lexer.peek()
         while token.get_type() != tokens.TokenType.END:
-            if token.get_type() in NonNestableStatement.starting_token_types():
-                self.statements.append(NonNestableStatement(lexer))
-            elif token.get_type() in NestableStatement.starting_token_types():
-                self.statements.append(NestableStatement(lexer))
-            else:
-                self.make_error(token, self.starting_token_types(), lexer)
-
+            self.statements.append(self.choose_and_build_node(lexer, self._starting_nodes()))
             token = lexer.peek()
 
     @classmethod
     def _starting_nodes(cls):
-        return {NonNestableStatement, NestableStatement}
-
-    def get_children(self):
-        return self.statements
-
-    def execute(self, environment):
-        pass
-
-
-class NonNestableStatement(BaseNode, Executable):
-    def __init__(self, lexer):
-        self.statement = FunctionDefinitionStatement(lexer)
-        Semicolon(lexer)
-
-    @classmethod
-    def _starting_nodes(cls):
-        return {FunctionDefinitionStatement}
-
-    def get_children(self):
-        return [self.statement]
-
-    def execute(self, environment):
-        pass
-
-
-class NestableStatement(SwitchNode, Executable):
-    def __init__(self, lexer):
-        super().__init__(lexer)
-        Semicolon(lexer)
-
-    @classmethod
-    def _starting_nodes(cls):
-        return {IdentifierFirstStatement,
+        return {FunctionDefinitionStatement,
+                IdentifierFirstStatement,
                 VariableDefinitionStatement,
                 IfStatement, FromStatement,
                 PrintStatement,
                 ReturnStatement}
+
+    def get_children(self):
+        return self.statements
 
     def execute(self, environment):
         pass
@@ -314,6 +274,7 @@ class IdentifierFirstStatement(BaseNode, Executable):
             self.make_error(token,
                             FunctionCall.starting_token_types() | VariableAssignmentStatement.starting_token_types(),
                             lexer)
+        Semicolon(lexer)
 
     @classmethod
     def _starting_nodes(cls):
@@ -350,6 +311,7 @@ class FunctionDefinitionStatement(BaseNode, Executable):
         self.identifier = Identifier(lexer)
         self.parameters = ParametersDeclaration(lexer)
         self.body = Body(lexer)
+        Semicolon(lexer)
 
     @classmethod
     def _starting_nodes(cls):
@@ -370,6 +332,7 @@ class VariableDefinitionStatement(BaseNode, Executable):
         token = lexer.peek()
         if token.get_type() in VariableAssignmentStatement.starting_token_types():
             self.assignment = VariableAssignmentStatement(lexer, self.identifier)
+        Semicolon(lexer)
 
     @classmethod
     def _starting_nodes(cls):
@@ -395,6 +358,7 @@ class IfStatement(BaseNode, Executable):
         if token.get_type() in ElseKeyword.starting_token_types():
             ElseKeyword(lexer)
             self.else_body = Body(lexer)
+        Semicolon(lexer)
 
     @classmethod
     def _starting_nodes(cls):
@@ -417,6 +381,7 @@ class FromStatement(BaseNode, Executable):
         self.step = FromStep(lexer)
         self.iterator = FromIterator(lexer)
         self.body = Body(lexer)
+        Semicolon(lexer)
 
     @classmethod
     def _starting_nodes(cls):
@@ -433,6 +398,7 @@ class PrintStatement(BaseNode, Executable):
     def __init__(self, lexer):
         PrintKeyword(lexer)
         self.expression = Expression(lexer)
+        Semicolon(lexer)
 
     @classmethod
     def _starting_nodes(cls):
@@ -448,10 +414,8 @@ class PrintStatement(BaseNode, Executable):
 class ReturnStatement(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
         ReturnKeyword(lexer)
-        self.expression = None
-        token = lexer.peek()
-        if token.get_type() in Expression.starting_token_types():
-            self.expression = Expression(lexer)
+        self.expression = self.choose_and_build_node(lexer, {Expression}, required=False)
+        Semicolon(lexer)
 
     @classmethod
     def _starting_nodes(cls):
@@ -496,10 +460,18 @@ class Body(BaseNode, Executable):
     def __init__(self, lexer):
         LeftBracket(lexer)
         self.statements = []
-        token = lexer.peek()
-        while token.get_type() in NestableStatement.starting_token_types():
-            self.statements.append(NestableStatement(lexer))
-            token = lexer.peek()
+        node = self.choose_and_build_node(lexer, {IdentifierFirstStatement,
+                                                  VariableDefinitionStatement,
+                                                  IfStatement, FromStatement,
+                                                  PrintStatement,
+                                                  ReturnStatement}, required=False)
+        while node:
+            self.statements.append(node)
+            node = self.choose_and_build_node(lexer, {IdentifierFirstStatement,
+                                                      VariableDefinitionStatement,
+                                                      IfStatement, FromStatement,
+                                                      PrintStatement,
+                                                      ReturnStatement}, required=False)
         RightBracket(lexer)
 
     @classmethod
@@ -533,7 +505,13 @@ class FromRange(BaseNode, SelfEvaluable):
 class FromStep(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
         ByKeyword(lexer)
-        self.time_unit = TimeUnit(lexer)
+        self.time_unit = self.choose_and_build_node(lexer, {Years,
+                                                            Months,
+                                                            Weeks,
+                                                            Days,
+                                                            Hours,
+                                                            Minutes,
+                                                            Seconds})
 
     @classmethod
     def _starting_nodes(cls):
@@ -605,10 +583,8 @@ class LogicAndExpression(BaseNode, SelfEvaluable):
 class LogicEqualityExpression(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
         self.first_expression = LogicRelationalExpression(lexer)
-        self.operator = None
-        token = lexer.peek()
-        if token.get_type() in EqualityOperator.starting_token_types():
-            self.operator = EqualityOperator(lexer)
+        self.operator = self.choose_and_build_node(lexer, {EqualOperator, NotEqualOperator}, required=False)
+        if self.operator:
             self.second_expression = LogicRelationalExpression(lexer)
 
     @classmethod
@@ -628,10 +604,8 @@ class LogicEqualityExpression(BaseNode, SelfEvaluable):
 class LogicRelationalExpression(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
         self.first_expression = LogicTerm(lexer)
-        self.operator = None
-        token = lexer.peek()
-        if token.get_type() in RelationOperator.starting_token_types():
-            self.operator = RelationOperator(lexer)
+        self.operator = self.choose_and_build_node(lexer, {GreaterOperator, GreaterOrEqualOperator, LessOperator, LessOrEqualOperator}, required=False)
+        if self.operator:
             self.second_expression = LogicTerm(lexer)
 
     @classmethod
@@ -650,10 +624,7 @@ class LogicRelationalExpression(BaseNode, SelfEvaluable):
 
 class LogicTerm(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
-        self.negation = None
-        token = lexer.peek()
-        if token.get_type() in LogicNegationOperator.starting_token_types():
-            self.negation = LogicNegationOperator(lexer)
+        self.negation = self.choose_and_build_node(lexer, {LogicNegationOperator}, required=False)
         self.expression = MathExpression(lexer)
 
     @classmethod
@@ -674,10 +645,10 @@ class MathExpression(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
         self.first_expression = MultiplicativeMathExpression(lexer)
         self.operations = []
-        token = lexer.peek()
-        while token.get_type() in AdditiveOperator.starting_token_types():
-            self.operations.append((AdditiveOperator(lexer), MultiplicativeMathExpression(lexer)))
-            token = lexer.peek()
+        operator = self.choose_and_build_node(lexer, {PlusOperator, MinusOperator}, required=False)
+        while operator:
+            self.operations.append((operator, MultiplicativeMathExpression(lexer)))
+            operator = self.choose_and_build_node(lexer, {PlusOperator, MinusOperator}, required=False)
 
     @classmethod
     def _starting_nodes(cls):
@@ -694,10 +665,10 @@ class MultiplicativeMathExpression(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
         self.first_expression = MathTerm(lexer)
         self.operations = []
-        token = lexer.peek()
-        while token.get_type() in MultiplicativeOperator.starting_token_types():
-            self.operations.append((MultiplicativeOperator(lexer), MathTerm(lexer)))
-            token = lexer.peek()
+        operator = self.choose_and_build_node(lexer, {MultiplyOperator, DivisionOperator}, required=False)
+        while operator:
+            self.operations.append((operator, MathTerm(lexer)))
+            operator = self.choose_and_build_node(lexer, {MultiplyOperator, DivisionOperator}, required=False)
 
     @classmethod
     def _starting_nodes(cls):
@@ -712,21 +683,27 @@ class MultiplicativeMathExpression(BaseNode, SelfEvaluable):
 
 class MathTerm(BaseNode, SelfEvaluable):
     def __init__(self, lexer):
-        self.negation = None
-        token = lexer.peek()
-        if token.get_type() in MathNegationOperator.starting_token_types():
-            self.negation = MathNegationOperator(lexer)
-        token = lexer.peek()
-        if token.get_type() in Value.starting_token_types():
-            self.term = Value(lexer)
-        elif token.get_type() in ParenthesisedExpression.starting_token_types():
-            self.term = ParenthesisedExpression(lexer)
-        else:
-            self.make_error(token, self.starting_token_types(), lexer)
+        self.negation = self.choose_and_build_node(lexer, {MathNegationOperator}, required=False)
+        self.term = self.choose_and_build_node(lexer, {NumberLiteral,
+                                                       StringLiteral,
+                                                       DateLiteral,
+                                                       TimeLiteral,
+                                                       DateTimeLiteral,
+                                                       TimedeltaLiteral,
+                                                       IdentifierFirstValue,
+                                                       ParenthesisedExpression})
 
     @classmethod
     def _starting_nodes(cls):
-        return {MathNegationOperator, Value, ParenthesisedExpression}
+        return {MathNegationOperator,
+                NumberLiteral,
+                StringLiteral,
+                DateLiteral,
+                TimeLiteral,
+                DateTimeLiteral,
+                TimedeltaLiteral,
+                IdentifierFirstValue,
+                ParenthesisedExpression}
 
     def get_children(self):
         if self.negation is None:
@@ -755,15 +732,6 @@ class ParenthesisedExpression(BaseNode, SelfEvaluable):
         pass
 
 
-class AdditiveOperator(SwitchNode, BinaryEvaluable):
-    @classmethod
-    def _starting_nodes(cls):
-        return {PlusOperator, MinusOperator}
-
-    def evaluate(self, lhs, rhs, environment):
-        pass
-
-
 class PlusOperator(LeafNode, BinaryEvaluable):
     @classmethod
     def token_type(cls):
@@ -777,15 +745,6 @@ class MinusOperator(LeafNode, BinaryEvaluable):
     @classmethod
     def token_type(cls):
         return tokens.TokenType.MINUS
-
-    def evaluate(self, lhs, rhs, environment):
-        pass
-
-
-class MultiplicativeOperator(SwitchNode, BinaryEvaluable):
-    @classmethod
-    def _starting_nodes(cls):
-        return {MultiplyOperator, DivisionOperator}
 
     def evaluate(self, lhs, rhs, environment):
         pass
@@ -827,15 +786,6 @@ class AndOperator(LeafNode, BinaryEvaluable):
         pass
 
 
-class EqualityOperator(SwitchNode, BinaryEvaluable):
-    @classmethod
-    def _starting_nodes(cls):
-        return {EqualOperator, NotEqualOperator}
-
-    def evaluate(self, lhs, rhs, environment):
-        pass
-
-
 class EqualOperator(LeafNode, BinaryEvaluable):
     @classmethod
     def token_type(cls):
@@ -849,15 +799,6 @@ class NotEqualOperator(LeafNode, BinaryEvaluable):
     @classmethod
     def token_type(cls):
         return tokens.TokenType.NOT_EQUALS
-
-    def evaluate(self, lhs, rhs, environment):
-        pass
-
-
-class RelationOperator(SwitchNode, BinaryEvaluable):
-    @classmethod
-    def _starting_nodes(cls):
-        return {GreaterOperator, GreaterOrEqualOperator, LessOperator, LessOrEqualOperator}
 
     def evaluate(self, lhs, rhs, environment):
         pass
@@ -912,15 +853,6 @@ class LogicNegationOperator(LeafNode, UnaryEvaluable):
     @classmethod
     def token_type(cls):
         return tokens.TokenType.NOT
-
-    def evaluate(self, rhs, environment):
-        pass
-
-
-class TimeUnit(SwitchNode, UnaryEvaluable):
-    @classmethod
-    def _starting_nodes(cls):
-        return {Years, Months, Weeks, Days, Hours, Minutes, Seconds}
 
     def evaluate(self, rhs, environment):
         pass
@@ -986,24 +918,6 @@ class Seconds(LeafNode, UnaryEvaluable):
         return tokens.TokenType.SECONDS
 
     def evaluate(self, rhs, environment):
-        pass
-
-
-class Value(SwitchNode, SelfEvaluable):
-    @classmethod
-    def _starting_nodes(cls):
-        return {Literal, IdentifierFirstValue}
-
-    def evaluate(self, environment):
-        pass
-
-
-class Literal(SwitchNode, SelfEvaluable):
-    @classmethod
-    def _starting_nodes(cls):
-        return {NumberLiteral, StringLiteral, DateLiteral, TimeLiteral, DateTimeLiteral, TimedeltaLiteral}
-
-    def evaluate(self, environment):
         pass
 
 
@@ -1130,7 +1044,13 @@ class TimeInfoAccess(BaseNode, SelfEvaluable):
                  identifier):  # have to pass identifier as it was already parsed above (because of ambiguity)
         self.identifier = identifier
         Access(lexer)
-        self.time_unit = TimeUnit(lexer)
+        self.time_unit = self.choose_and_build_node(lexer, {Years,
+                                                            Months,
+                                                            Weeks,
+                                                            Days,
+                                                            Hours,
+                                                            Minutes,
+                                                            Seconds})
 
     @classmethod
     def _starting_nodes(cls):

@@ -1,12 +1,11 @@
-program = { nestableStatement | nonNestableStatement } ;
+program = { functionDefinitionStatement |
+            identifierFirstStatement |
+            variableDefinitionStatement |
+            ifStatement |
+            fromStatement |
+            printStatement |
+            returnStatement  } ;
 
-nonNestableStatement = functionDefinitionStatement, ";" ;
-nestableStatement = ( identifierFirstStatement |
-                      variableDefinitionStatement |
-                      ifStatement |
-                      fromStatement |
-                      printStatement |
-                      returnStatement ), ";" ;
 identifierFirstStatement = identifier, ( parameters | assignment ) ;
 
 functionDefinitionStatement = "fun", identifier, parametersDeclaration, body ;
@@ -17,47 +16,67 @@ printStatement = "print", expr ;
 returnStatement = "return", expr ;
 
 parametersDeclaration = "(", [ identifier, { ",", identifier } ], ")" ;
-body = "{", { nestableStatement }, "}" ;
+body = "{", { identifierFirstStatement |
+              variableDefinitionStatement |
+              ifStatement |
+              fromStatement |
+              printStatement |
+              returnStatement }, "}" ;
 
 assignment = assignmentOperator, expr ;
 
 fromRange = expr, "to", expr ;
-fromStep = "by", timeUnit ;
+fromStep = "by", "years" |
+                 "months" |
+                 "weeks" |
+                 "days" |
+                 "hours" |
+                 "minutes" |
+                 "seconds" ;
 fromIterator = "as", identifier ;
 
 expr = logicAndExpr, { orOperator, logicAndExpr } ;
 logicAndExpr = logicEqualExpr, { andOperator, logicEqualExpr } ;
-logicEqualExpr = logicRelExpr, [ equalityOperator, logicRelExpr ] ;
-logicRelExpr = logicTerm, [ relationOperator, logicTerm ] ;
+logicEqualExpr = logicRelExpr, [ ( equalOperator | notEqualOperator ) , logicRelExpr ] ;
+logicRelExpr = logicTerm, [ ( greaterOperator | greaterOrEqualOperator | lessOperator | lessOrEqualOperator ), logicTerm ] ;
 logicTerm = [ logicNegOperator ], mathExpr ;
-mathExpr = multMathExpr, { additiveOperator, multMathExpr } ;
-multMathExpr = mathTerm, { multiplicativeOperator, mathTerm } ;
-mathTerm = [ mathNegOperator ], ( value | parenthesisedExpr ) ;
+mathExpr = multMathExpr, { ( plusOperator | minusOperator ), multMathExpr } ;
+multMathExpr = mathTerm, { ( multiplyOperator | divisionOperator ), mathTerm } ;
+mathTerm = [ mathNegOperator ], ( numberLiteral |
+                                  stringLiteral |
+                                  dateLiteral |
+                                  timeLiteral |
+                                  datetimeLiteral |
+                                  timedeltaLiteral |
+                                  identifierFirstValue |
+                                  parenthesisedExpr ) ;
+
 parenthesisedExpr = "(", expr, ")" ;
 
 assignmentOperator = "=" ;
 orOperator = "|" ;
 andOperator = "&" ;
-equalityOperator = "==" | "!=" ;
-relationOperator = ">" | ">=" | "<" | "<=" ;
+equalOperator = "==" ;
+notEqualOperator = "!=" ;
+greaterOperator = ">" ;
+greaterOrEqualOperator = ">=" ;
+lessOperator = "<" ;
+lessOrEqualOperator = "<=" ;
 logicNegOperator = "!" ;
 
-additiveOperator = "+" | "-" ;
-multiplicativeOperator = "*" | "/" ;
+plusOperator = "+" ;
+minusOperator = "-" ;
+multiplyOperator = "*" ;
+divisionOperator = "/" ;
 mathNegOperator = "-" ;
 
-timeUnit = "years" |
-           "months" |
-           "weeks" |
-           "days" |
-           "hours" |
-           "minutes" |
-           "seconds" ;
-
-value = literal | identifierFirstValue ;
-literal = numberLiteral | stringLiteral | dateLiteral |
-          timeLiteral | datetimeLiteral | timedeltaLiteral ;
-identifierFirstValue = identifier, [ parametersCall | ".", timeUnit ] ;
+identifierFirstValue = identifier, [ parametersCall | ".", ( "years" |
+                                                             "months" |
+                                                             "weeks" |
+                                                             "days" |
+                                                             "hours" |
+                                                             "minutes" |
+                                                             "seconds" ) ] ;
 parametersCall = "(", [ expr, { ",", expr } ], ")" ;
 
 numberLiteral = "0" | ( nonZeroDigit, { digit } ) ;

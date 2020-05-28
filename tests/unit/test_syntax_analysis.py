@@ -233,32 +233,6 @@ class ProgramNodeTestCase(BaseParsingTestCase):
 
 
 # noinspection PyUnusedLocal
-class IdentifierFirstStatementNodeTestCase(BaseParsingTestCase):
-    @mock.patch('builtins.open', return_value=io.StringIO("abc();"))
-    def test_identifier_first_statement_function_call(self, mock_open):
-        self.assert_node(syntax_nodes.IdentifierFirstStatement, [syntax_nodes.FunctionCall])
-
-    @mock.patch('builtins.open', return_value=io.StringIO("a = 10;"))
-    def test_identifier_first_statement_variable_assignment_statement(self, mock_open):
-        self.assert_node(syntax_nodes.IdentifierFirstStatement, [syntax_nodes.VariableAssignmentStatement])
-
-    @mock.patch('builtins.open', return_value=io.StringIO("();"))
-    def test_identifier_first_statement_no_identifier(self, mock_open):
-        with FileReader("whatever") as fr:
-            self.assertRaises(error_handling.SyntacticError, syntax_nodes.IdentifierFirstStatement, Lexer(fr))
-
-    @mock.patch('builtins.open', return_value=io.StringIO("abc);"))
-    def test_identifier_first_statement_bad_statement(self, mock_open):
-        with FileReader("whatever") as fr:
-            self.assertRaises(error_handling.SyntacticError, syntax_nodes.IdentifierFirstStatement, Lexer(fr))
-
-    @mock.patch('builtins.open', return_value=io.StringIO("abc{};"))
-    def test_identifier_first_statement_bad_parenthesis(self, mock_open):
-        with FileReader("whatever") as fr:
-            self.assertRaises(error_handling.SyntacticError, syntax_nodes.IdentifierFirstStatement, Lexer(fr))
-
-
-# noinspection PyUnusedLocal
 class VariableAssignmentStatementNodeTestCase(BaseParsingTestCase):
     @mock.patch('builtins.open', return_value=io.StringIO("a = 10;"))
     def test_variable_assignment_statement(self, mock_open):
@@ -876,31 +850,6 @@ class LogicTermNodeTestCase(BaseParsingTestCase):
 
 
 # noinspection PyUnusedLocal
-class IdentifierFirstValueNodeTestCase(BaseParsingTestCase):
-    @mock.patch('builtins.open', return_value=io.StringIO("abc"))
-    def test_identifier_first_value_identifier(self, mock_open):
-        self.assert_node(syntax_nodes.IdentifierFirstValue, [syntax_nodes.Identifier])
-
-    @mock.patch('builtins.open', return_value=io.StringIO("abc()"))
-    def test_identifier_first_value_function_call(self, mock_open):
-        self.assert_node(syntax_nodes.IdentifierFirstValue, [syntax_nodes.FunctionCall])
-
-    @mock.patch('builtins.open', return_value=io.StringIO("abc.days"))
-    def test_identifier_first_value_time_info_access(self, mock_open):
-        self.assert_node(syntax_nodes.IdentifierFirstValue, [syntax_nodes.TimeInfoAccess])
-
-    @mock.patch('builtins.open', return_value=io.StringIO("()"))
-    def test_identifier_first_value_function_call_no_identifier(self, mock_open):
-        with FileReader("whatever") as fr:
-            self.assertRaises(error_handling.SyntacticError, syntax_nodes.IdentifierFirstValue, Lexer(fr))
-
-    @mock.patch('builtins.open', return_value=io.StringIO(".days"))
-    def test_identifier_first_value_time_info_access_no_identifier(self, mock_open):
-        with FileReader("whatever") as fr:
-            self.assertRaises(error_handling.SyntacticError, syntax_nodes.IdentifierFirstValue, Lexer(fr))
-
-
-# noinspection PyUnusedLocal
 class FunctionCallNodeTestCase(BaseParsingTestCase):
     @mock.patch('builtins.open', return_value=io.StringIO("abc(a)"))
     def test_function_call(self, mock_open):
@@ -989,34 +938,24 @@ class FunctionCallNodeTestCase(BaseParsingTestCase):
 
 # noinspection PyUnusedLocal
 class TimeInfoAccessNodeTestCase(BaseParsingTestCase):
-    @mock.patch('builtins.open', return_value=io.StringIO("a.days"))
+    @mock.patch('builtins.open', return_value=io.StringIO(".days"))
     def test_time_info_access(self, mock_open):
-        with FileReader("whatever") as fr:
-            lexer = Lexer(fr)
-            node = syntax_nodes.TimeInfoAccess(lexer, syntax_nodes.Identifier(lexer))
-            children_types = [type(child) for child in node.get_children()]
-            self.assertEqual(children_types, [syntax_nodes.Identifier, syntax_nodes.Days])
+        self.assert_node(syntax_nodes.TimeInfoAccess, [syntax_nodes.Days])
 
-    @mock.patch('builtins.open', return_value=io.StringIO("a days"))
+    @mock.patch('builtins.open', return_value=io.StringIO(" days"))
     def test_time_info_access_no_access(self, mock_open):
         with FileReader("whatever") as fr:
-            lexer = Lexer(fr)
-            self.assertRaises(error_handling.SyntacticError, syntax_nodes.TimeInfoAccess, lexer,
-                              syntax_nodes.Identifier(lexer))
+            self.assertRaises(error_handling.SyntacticError, syntax_nodes.TimeInfoAccess, Lexer(fr))
 
-    @mock.patch('builtins.open', return_value=io.StringIO("a."))
+    @mock.patch('builtins.open', return_value=io.StringIO("."))
     def test_time_info_access_no_unit(self, mock_open):
         with FileReader("whatever") as fr:
-            lexer = Lexer(fr)
-            self.assertRaises(error_handling.SyntacticError, syntax_nodes.TimeInfoAccess, lexer,
-                              syntax_nodes.Identifier(lexer))
+            self.assertRaises(error_handling.SyntacticError, syntax_nodes.TimeInfoAccess, Lexer(fr))
 
-    @mock.patch('builtins.open', return_value=io.StringIO("a,days"))
+    @mock.patch('builtins.open', return_value=io.StringIO(",days"))
     def test_time_info_access_bad_access(self, mock_open):
         with FileReader("whatever") as fr:
-            lexer = Lexer(fr)
-            self.assertRaises(error_handling.SyntacticError, syntax_nodes.TimeInfoAccess, lexer,
-                              syntax_nodes.Identifier(lexer))
+            self.assertRaises(error_handling.SyntacticError, syntax_nodes.TimeInfoAccess, Lexer(fr))
 
 
 # noinspection PyUnusedLocal

@@ -49,7 +49,7 @@ mathTerm = [ mathNegOperator ], ( numberLiteral |
                                   datetimeLiteral |
                                   timedeltaLiteral |
                                   identifierFirstValue |
-                                  parenthesisedExpr ) ;
+                                  parenthesisedExpr ), [ timeInfoAccess ];
 
 parenthesisedExpr = "(", expr, ")" ;
 
@@ -70,7 +70,7 @@ multiplyOperator = "*" ;
 divisionOperator = "/" ;
 mathNegOperator = "-" ;
 
-identifierFirstValue = identifier, [ parametersCall | timeInfoAccess ] ;
+identifierFirstValue = identifier, [ parametersCall ] ;
 parametersCall = "(", [ expr, { ",", expr } ], ")" ;
 timeInfoAccess = ".", ( "years" |
                         "months" |

@@ -254,13 +254,28 @@ class Program(BaseNode, Executable):
         self.statements = []
         token = lexer.peek()
         while token.get_type() != tokens.TokenType.END:
-            self.statements.append(self.choose_and_build_node(lexer, self._starting_nodes()))
+            self.statements.append(self._get_node(lexer))
             token = lexer.peek()
+
+    def _get_node(self, lexer):
+        node = self.choose_and_build_node(lexer, self._starting_nodes())
+        if isinstance(node, Identifier):
+            token = lexer.peek()
+            if token.get_type() in FunctionCall.starting_token_types():
+                node = FunctionCall(lexer, node)
+            elif token.get_type() in VariableAssignmentStatement.starting_token_types():
+                node = VariableAssignmentStatement(lexer, node)
+            else:
+                self.make_error(token,
+                                FunctionCall.starting_token_types() | VariableAssignmentStatement.starting_token_types(),
+                                lexer)
+            Semicolon(lexer)
+        return node
 
     @classmethod
     def _starting_nodes(cls):
         return {FunctionDefinitionStatement,
-                IdentifierFirstStatement,
+                Identifier,
                 VariableDefinitionStatement,
                 IfStatement, FromStatement,
                 PrintStatement,
@@ -271,36 +286,11 @@ class Program(BaseNode, Executable):
 
     def execute(self, environment):
         for statement in self.statements:
-            if isinstance(statement, ReturnStatement):
-                return statement.execute(environment)
-            statement.execute(environment)
+            jumping, value = statement.execute(environment)
+            if jumping:
+                return value
 
         return None
-
-
-class IdentifierFirstStatement(ReducibleNode, Executable):
-    def __init__(self, lexer):
-        identifier = Identifier(lexer)
-        token = lexer.peek()
-        if token.get_type() in FunctionCall.starting_token_types():
-            self.statement = FunctionCall(lexer, identifier)
-        elif token.get_type() in VariableAssignmentStatement.starting_token_types():
-            self.statement = VariableAssignmentStatement(lexer, identifier)
-        else:
-            self.make_error(token,
-                            FunctionCall.starting_token_types() | VariableAssignmentStatement.starting_token_types(),
-                            lexer)
-        Semicolon(lexer)
-
-    @classmethod
-    def _starting_nodes(cls):
-        return {Identifier}
-
-    def get_children(self):
-        return [self.statement]
-
-    def execute(self, environment):
-        self.statement.execute(environment)
 
 
 class VariableAssignmentStatement(BaseNode, Executable):
@@ -319,6 +309,7 @@ class VariableAssignmentStatement(BaseNode, Executable):
 
     def execute(self, environment):
         environment.set_var(self.identifier.token.get_value(), self.expression.self_evaluate(environment))
+        return False, None
 
 
 class FunctionDefinitionStatement(BaseNode, Executable):
@@ -338,6 +329,7 @@ class FunctionDefinitionStatement(BaseNode, Executable):
 
     def execute(self, environment):
         environment.set_fun(self.identifier.token.get_value(), self)
+        return False, None
 
 
 class VariableDefinitionStatement(BaseNode, Executable):
@@ -364,6 +356,7 @@ class VariableDefinitionStatement(BaseNode, Executable):
         environment.add_var(self.identifier.token.get_value())
         if self.assignment:
             self.assignment.execute(environment)
+        return False, None
 
 
 class IfStatement(BaseNode, Executable):
@@ -391,12 +384,17 @@ class IfStatement(BaseNode, Executable):
     def execute(self, environment):
         if self.expression.self_evaluate(environment):
             environment.push_scope()
-            self.body.execute(environment)
+            jumping, value = self.body.execute(environment)
             environment.pop_scope()
+            if jumping:
+                return True, value
         elif self.else_body:
             environment.push_scope()
-            self.else_body.execute(environment)
+            jumping, value = self.else_body.execute(environment)
             environment.pop_scope()
+            if jumping:
+                return True, value
+        return False, None
 
 
 class FromStatement(BaseNode, Executable):
@@ -435,9 +433,12 @@ class FromStatement(BaseNode, Executable):
             environment.push_scope()
             environment.add_var(self.identifier.token.get_value())
             environment.set_var(self.identifier.token.get_value(), start)
-            self.body.execute(environment)
+            jumping, value = self.body.execute(environment)
             environment.pop_scope()
+            if jumping:
+                return True, value
             start += step
+        return False, None
 
 
 class PrintStatement(BaseNode, Executable):
@@ -455,6 +456,7 @@ class PrintStatement(BaseNode, Executable):
 
     def execute(self, environment):
         print(self.expression.self_evaluate(environment))
+        return False, None
 
 
 class ReturnStatement(BaseNode, Executable):
@@ -476,7 +478,7 @@ class ReturnStatement(BaseNode, Executable):
         return [self.expression]
 
     def execute(self, environment):
-        pass
+        return True, self.expression.self_evaluate(environment)
 
 
 class ParametersDeclaration(BaseNode, Executable):
@@ -509,19 +511,27 @@ class Body(BaseNode, Executable):
     def __init__(self, lexer):
         LeftBracket(lexer)
         self.statements = []
-        node = self.choose_and_build_node(lexer, {IdentifierFirstStatement,
-                                                  VariableDefinitionStatement,
-                                                  IfStatement, FromStatement,
-                                                  PrintStatement,
-                                                  ReturnStatement}, required=False)
+        node = self._get_node(lexer)
         while node:
             self.statements.append(node)
-            node = self.choose_and_build_node(lexer, {IdentifierFirstStatement,
+            node = self._get_node(lexer)
+        RightBracket(lexer)
+
+    @staticmethod
+    def _get_node(lexer):
+        node = BaseNode.choose_and_build_node(lexer, {Identifier,
                                                       VariableDefinitionStatement,
                                                       IfStatement, FromStatement,
                                                       PrintStatement,
                                                       ReturnStatement}, required=False)
-        RightBracket(lexer)
+        if isinstance(node, Identifier):
+            token = lexer.peek()
+            if token.get_type() in FunctionCall.starting_token_types():
+                node = FunctionCall(lexer, node)
+            elif token.get_type() in VariableAssignmentStatement.starting_token_types():
+                node = VariableAssignmentStatement(lexer, node)
+            Semicolon(lexer)
+        return node
 
     @classmethod
     def _starting_nodes(cls):
@@ -532,11 +542,10 @@ class Body(BaseNode, Executable):
 
     def execute(self, environment):
         for statement in self.statements:
-            if isinstance(statement, ReturnStatement):
-                return statement.execute(environment)
-            statement.execute(environment)
-
-        return None
+            jumping, value = statement.execute(environment)
+            if jumping:
+                return True, value
+        return False, None
 
 
 class Expression(ReducibleNode, SelfEvaluable):
@@ -711,8 +720,11 @@ class MathTerm(ReducibleNode, SelfEvaluable):
                                                        TimeLiteral,
                                                        DateTimeLiteral,
                                                        TimedeltaLiteral,
-                                                       IdentifierFirstValue,
+                                                       Identifier,
                                                        ParenthesisedExpression})
+        if isinstance(self.term, Identifier) and lexer.peek().get_type() in FunctionCall.starting_token_types():
+            self.term = FunctionCall(lexer, self.term)
+        self.access = self.choose_and_build_node(lexer, {TimeInfoAccess}, required=False)
 
     @classmethod
     def _starting_nodes(cls):
@@ -723,17 +735,22 @@ class MathTerm(ReducibleNode, SelfEvaluable):
                 TimeLiteral,
                 DateTimeLiteral,
                 TimedeltaLiteral,
-                IdentifierFirstValue,
+                Identifier,
                 ParenthesisedExpression}
 
     def get_children(self):
-        if self.negation is None:
-            return [self.term]
-
-        return [self.negation, self.term]
+        c = []
+        if self.negation:
+            c += [self.negation]
+        c += [self.term]
+        if self.access:
+            c += [self.access]
+        return c
 
     def self_evaluate(self, environment):
         value = self.term.self_evaluate(environment)
+        if self.access:
+            value = self.access.unary_evaluate(value, environment)
         if self.negation:
             return self.negation.unary_evaluate(value, environment)
         return value
@@ -1034,28 +1051,6 @@ class TimedeltaLiteral(LeafNode, SelfEvaluable):
         return self.token.get_value()
 
 
-class IdentifierFirstValue(ReducibleNode, SelfEvaluable):
-    def __init__(self, lexer):
-        identifier = Identifier(lexer)
-        token = lexer.peek()
-        if token.get_type() in FunctionCall.starting_token_types():
-            self.value = FunctionCall(lexer, identifier)
-        elif token.get_type() in TimeInfoAccess.starting_token_types():
-            self.value = TimeInfoAccess(lexer, identifier)
-        else:
-            self.value = identifier
-
-    @classmethod
-    def _starting_nodes(cls):
-        return {Identifier}
-
-    def get_children(self):
-        return [self.value]
-
-    def self_evaluate(self, environment):
-        return self.value.self_evaluate(environment)
-
-
 class FunctionCall(BaseNode, Executable, SelfEvaluable):
     def __init__(self, lexer,
                  identifier):  # have to pass identifier as it was already parsed above (because of ambiguity)
@@ -1081,6 +1076,7 @@ class FunctionCall(BaseNode, Executable, SelfEvaluable):
 
     def execute(self, environment):
         self.self_evaluate(environment)
+        return False, None
 
     def self_evaluate(self, environment):
         fun_node = environment.get_fun(self.identifier.token.get_value())
@@ -1090,15 +1086,13 @@ class FunctionCall(BaseNode, Executable, SelfEvaluable):
         fun_node.parameters.execute(environment)
         for param_id, param_val in zip(fun_node.parameters.parameters, self.parameters):
             environment.set_var(param_id.token.get_value(), param_val.self_evaluate(environment))
-        fun_node.body.execute(environment)
+        _, value = fun_node.body.execute(environment)
         environment.pop_scope()
-        return 1  # TODO
+        return value
 
 
-class TimeInfoAccess(BaseNode, SelfEvaluable):
-    def __init__(self, lexer,
-                 identifier):  # have to pass identifier as it was already parsed above (because of ambiguity)
-        self.identifier = identifier
+class TimeInfoAccess(BaseNode, UnaryEvaluable):
+    def __init__(self, lexer):  # have to pass identifier as it was already parsed above (because of ambiguity)
         Access(lexer)
         self.time_unit = self.choose_and_build_node(lexer, {Years,
                                                             Months,
@@ -1113,7 +1107,7 @@ class TimeInfoAccess(BaseNode, SelfEvaluable):
         return {Access}
 
     def get_children(self):
-        return [self.identifier, self.time_unit]
+        return [self.time_unit]
 
-    def self_evaluate(self, environment):
-        return self.time_unit.unary_evaluate(self.identifier.token.get_value, environment)
+    def unary_evaluate(self, rhs, environment):
+        return self.time_unit.unary_evaluate(rhs, environment)

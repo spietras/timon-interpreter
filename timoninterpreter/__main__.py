@@ -10,8 +10,9 @@ from timoninterpreter import error_handling
 from timoninterpreter import tokens
 from timoninterpreter.lexical_analysis import Lexer
 from timoninterpreter.source_readers import FileReader
-from timoninterpreter.syntax_analysis import LeafNode
-from timoninterpreter.syntax_analysis import Program
+from timoninterpreter.syntax_nodes import LeafNode
+from timoninterpreter.syntax_nodes import Program
+from timoninterpreter.execution import Environment
 
 
 def display_tokens(token_list):
@@ -19,7 +20,11 @@ def display_tokens(token_list):
     print(format_string.format("token", "type", "line number", "line position", "absolute position"))
     for token in token_list:
         print(
-            format_string.format(str(token)[:50], token.get_type(), token.line_num, token.line_pos, token.absolute_pos))
+            format_string.format(str(token)[:50],
+                                 token.get_type(),
+                                 token.get_file_pos().get_line_num(),
+                                 token.get_file_pos().get_line_pos(),
+                                 token.get_file_pos().get_absolute_pos()))
 
 
 def display_syntax_tree(root_node):
@@ -83,10 +88,28 @@ def run_parser(path):
         error_handling.report_generic_error("Unknown", str(e).capitalize())
 
 
+def run_execution(path):
+    try:
+        with FileReader(path) as fr:
+            lex = Lexer(fr)
+            program = Program(lex)
+
+        program.execute(Environment())
+
+    except IOError as e:
+        error_handling.report_generic_error("IO", str(e).capitalize())
+    except error_handling.LexicalError as e:
+        error_handling.report_lexical_error(e.file_pos, e.message)
+    except error_handling.SyntacticError as e:
+        error_handling.report_syntactic_error(e.token, e.message)
+    except Exception as e:
+        error_handling.report_generic_error("Unknown", str(e).capitalize())
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="python based interpreter for simple date oriented language")
     parser.add_argument('path', help='path to script file')
-    parser.add_argument('-stage', choices=['lexer', 'parser'], default='parser')
+    parser.add_argument('-stage', choices=['lexer', 'parser', 'execution'], default='execution')
 
     args = parser.parse_args()
 
@@ -94,3 +117,5 @@ if __name__ == '__main__':
         run_lexer(args.path)
     elif args.stage == 'parser':
         run_parser(args.path)
+    elif args.stage == 'execution':
+        run_execution(args.path)

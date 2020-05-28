@@ -165,6 +165,7 @@ class FileReaderPositionsTestCase(unittest.TestCase):
     def tearDown(self):
         self.file_reader.close()
 
+
 class FileReaderRewindTestCase(unittest.TestCase):
     def setUp(self):
         self.mock_open = make_mock_open(self, 'aaaaaaaaaaaa')
@@ -211,6 +212,7 @@ class FileReaderRewindTestCase(unittest.TestCase):
 
     def tearDown(self):
         self.file_reader.close()
+
 
 class FileReaderWithTestCase(unittest.TestCase):
     def setUp(self):

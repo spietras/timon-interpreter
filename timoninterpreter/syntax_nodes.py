@@ -110,19 +110,19 @@ class ReducibleNode(BaseNode, ABC):
 
 class BinaryEvaluable(ABC):
     @abstractmethod
-    def evaluate(self, lhs, rhs, environment):
+    def binary_evaluate(self, lhs, rhs, environment):
         pass
 
 
 class UnaryEvaluable(ABC):
     @abstractmethod
-    def evaluate(self, rhs, environment):
+    def unary_evaluate(self, rhs, environment):
         pass
 
 
 class SelfEvaluable(ABC):
     @abstractmethod
-    def evaluate(self, environment):
+    def self_evaluate(self, environment):
         pass
 
 
@@ -245,8 +245,8 @@ class Identifier(LeafNode, SelfEvaluable):
     def token_type(cls):
         return tokens.TokenType.IDENTIFIER
 
-    def evaluate(self, environment):
-        pass
+    def self_evaluate(self, environment):
+        return environment.get_var(self.token.get_value())
 
 
 class Program(BaseNode, Executable):
@@ -270,7 +270,12 @@ class Program(BaseNode, Executable):
         return self.statements
 
     def execute(self, environment):
-        pass
+        for statement in self.statements:
+            if isinstance(statement, ReturnStatement):
+                return statement.execute(environment)
+            statement.execute(environment)
+
+        return None
 
 
 class IdentifierFirstStatement(ReducibleNode, Executable):
@@ -295,7 +300,7 @@ class IdentifierFirstStatement(ReducibleNode, Executable):
         return [self.statement]
 
     def execute(self, environment):
-        pass
+        self.statement.execute(environment)
 
 
 class VariableAssignmentStatement(BaseNode, Executable):
@@ -313,7 +318,7 @@ class VariableAssignmentStatement(BaseNode, Executable):
         return [self.identifier, self.expression]
 
     def execute(self, environment):
-        pass
+        environment.set_var(self.identifier.token.get_value(), self.expression.self_evaluate(environment))
 
 
 class FunctionDefinitionStatement(BaseNode, Executable):
@@ -332,7 +337,7 @@ class FunctionDefinitionStatement(BaseNode, Executable):
         return [self.identifier, self.parameters, self.body]
 
     def execute(self, environment):
-        pass
+        environment.set_fun(self.identifier.token.get_value(), self)
 
 
 class VariableDefinitionStatement(BaseNode, Executable):
@@ -356,7 +361,9 @@ class VariableDefinitionStatement(BaseNode, Executable):
         return [self.identifier, self.assignment]
 
     def execute(self, environment):
-        pass
+        environment.add_var(self.identifier.token.get_value())
+        if self.assignment:
+            self.assignment.execute(environment)
 
 
 class IfStatement(BaseNode, Executable):
@@ -382,7 +389,14 @@ class IfStatement(BaseNode, Executable):
         return [self.expression, self.body, self.else_body]
 
     def execute(self, environment):
-        pass
+        if self.expression.self_evaluate(environment):
+            environment.push_scope()
+            self.body.execute(environment)
+            environment.pop_scope()
+        elif self.else_body:
+            environment.push_scope()
+            self.else_body.execute(environment)
+            environment.pop_scope()
 
 
 class FromStatement(BaseNode, Executable):
@@ -412,7 +426,18 @@ class FromStatement(BaseNode, Executable):
         return [self.start, self.end, self.time_unit, self.identifier, self.body]
 
     def execute(self, environment):
-        pass
+        environment.push_scope()
+        start = self.start.self_evaluate(environment)
+        end = self.end.self_evaluate(environment)
+        step = self.time_unit.self_evaluate(environment)
+
+        while start <= end:
+            environment.push_scope()
+            environment.add_var(self.identifier.token.get_value())
+            environment.set_var(self.identifier.token.get_value(), start)
+            self.body.execute(environment)
+            environment.pop_scope()
+            start += step
 
 
 class PrintStatement(BaseNode, Executable):
@@ -429,10 +454,10 @@ class PrintStatement(BaseNode, Executable):
         return [self.expression]
 
     def execute(self, environment):
-        pass
+        print(self.expression.self_evaluate(environment))
 
 
-class ReturnStatement(BaseNode, SelfEvaluable):
+class ReturnStatement(BaseNode, Executable):
     def __init__(self, lexer):
         ReturnKeyword(lexer)
         self.expression = self.choose_and_build_node(lexer, {Expression}, required=False)
@@ -450,11 +475,11 @@ class ReturnStatement(BaseNode, SelfEvaluable):
 
         return [self.expression]
 
-    def evaluate(self, environment):
+    def execute(self, environment):
         pass
 
 
-class ParametersDeclaration(BaseNode, SelfEvaluable):
+class ParametersDeclaration(BaseNode, Executable):
     def __init__(self, lexer):
         LeftParenthesis(lexer)
         self.parameters = []
@@ -475,8 +500,9 @@ class ParametersDeclaration(BaseNode, SelfEvaluable):
     def get_children(self):
         return self.parameters
 
-    def evaluate(self, environment):
-        pass
+    def execute(self, environment):
+        for parameter in self.parameters:
+            environment.add_var(parameter.token.get_value())
 
 
 class Body(BaseNode, Executable):
@@ -505,7 +531,12 @@ class Body(BaseNode, Executable):
         return self.statements
 
     def execute(self, environment):
-        pass
+        for statement in self.statements:
+            if isinstance(statement, ReturnStatement):
+                return statement.execute(environment)
+            statement.execute(environment)
+
+        return None
 
 
 class Expression(ReducibleNode, SelfEvaluable):
@@ -524,8 +555,11 @@ class Expression(ReducibleNode, SelfEvaluable):
     def get_children(self):
         return [self.first_expression] + [x for operation in self.operations for x in operation]
 
-    def evaluate(self, environment):
-        pass
+    def self_evaluate(self, environment):
+        value = self.first_expression.self_evaluate(environment)
+        for operator, expression in self.operations:
+            value = operator.binary_evaluate(value, expression.self_evaluate(environment), environment)
+        return value
 
 
 class LogicAndExpression(ReducibleNode, SelfEvaluable):
@@ -544,8 +578,11 @@ class LogicAndExpression(ReducibleNode, SelfEvaluable):
     def get_children(self):
         return [self.first_expression] + [x for operation in self.operations for x in operation]
 
-    def evaluate(self, environment):
-        pass
+    def self_evaluate(self, environment):
+        value = self.first_expression.self_evaluate(environment)
+        for operator, expression in self.operations:
+            value = operator.binary_evaluate(value, expression.self_evaluate(environment), environment)
+        return value
 
 
 class LogicEqualityExpression(ReducibleNode, SelfEvaluable):
@@ -565,8 +602,11 @@ class LogicEqualityExpression(ReducibleNode, SelfEvaluable):
 
         return [self.first_expression, self.operator, self.second_expression]
 
-    def evaluate(self, environment):
-        pass
+    def self_evaluate(self, environment):
+        value = self.first_expression.self_evaluate(environment)
+        if self.operator:
+            value = self.operator.binary_evaluate(value, self.second_expression.self_evaluate(environment), environment)
+        return value
 
 
 class LogicRelationalExpression(ReducibleNode, SelfEvaluable):
@@ -587,8 +627,11 @@ class LogicRelationalExpression(ReducibleNode, SelfEvaluable):
 
         return [self.first_expression, self.operator, self.second_expression]
 
-    def evaluate(self, environment):
-        pass
+    def self_evaluate(self, environment):
+        value = self.first_expression.self_evaluate(environment)
+        if self.operator:
+            value = self.operator.binary_evaluate(value, self.second_expression.self_evaluate(environment), environment)
+        return value
 
 
 class LogicTerm(ReducibleNode, SelfEvaluable):
@@ -606,8 +649,11 @@ class LogicTerm(ReducibleNode, SelfEvaluable):
 
         return [self.negation, self.expression]
 
-    def evaluate(self, environment):
-        pass
+    def self_evaluate(self, environment):
+        value = self.expression.self_evaluate(environment)
+        if self.negation:
+            return self.negation.unary_evaluate(value, environment)
+        return value
 
 
 class MathExpression(ReducibleNode, SelfEvaluable):
@@ -626,8 +672,11 @@ class MathExpression(ReducibleNode, SelfEvaluable):
     def get_children(self):
         return [self.first_expression] + [x for operation in self.operations for x in operation]
 
-    def evaluate(self, environment):
-        pass
+    def self_evaluate(self, environment):
+        value = self.first_expression.self_evaluate(environment)
+        for operator, expression in self.operations:
+            value = operator.binary_evaluate(value, expression.self_evaluate(environment), environment)
+        return value
 
 
 class MultiplicativeMathExpression(ReducibleNode, SelfEvaluable):
@@ -646,8 +695,11 @@ class MultiplicativeMathExpression(ReducibleNode, SelfEvaluable):
     def get_children(self):
         return [self.first_expression] + [x for operation in self.operations for x in operation]
 
-    def evaluate(self, environment):
-        pass
+    def self_evaluate(self, environment):
+        value = self.first_expression.self_evaluate(environment)
+        for operator, expression in self.operations:
+            value = operator.binary_evaluate(value, expression.self_evaluate(environment), environment)
+        return value
 
 
 class MathTerm(ReducibleNode, SelfEvaluable):
@@ -680,8 +732,11 @@ class MathTerm(ReducibleNode, SelfEvaluable):
 
         return [self.negation, self.term]
 
-    def evaluate(self, environment):
-        pass
+    def self_evaluate(self, environment):
+        value = self.term.self_evaluate(environment)
+        if self.negation:
+            return self.negation.unary_evaluate(value, environment)
+        return value
 
 
 class ParenthesisedExpression(ReducibleNode, SelfEvaluable):
@@ -697,8 +752,8 @@ class ParenthesisedExpression(ReducibleNode, SelfEvaluable):
     def get_children(self):
         return [self.expression]
 
-    def evaluate(self, environment):
-        pass
+    def self_evaluate(self, environment):
+        return self.expression.self_evaluate(environment)
 
 
 class PlusOperator(LeafNode, BinaryEvaluable):
@@ -706,8 +761,8 @@ class PlusOperator(LeafNode, BinaryEvaluable):
     def token_type(cls):
         return tokens.TokenType.PLUS
 
-    def evaluate(self, lhs, rhs, environment):
-        pass
+    def binary_evaluate(self, lhs, rhs, environment):
+        return lhs + rhs
 
 
 class MinusOperator(LeafNode, BinaryEvaluable):
@@ -715,8 +770,8 @@ class MinusOperator(LeafNode, BinaryEvaluable):
     def token_type(cls):
         return tokens.TokenType.MINUS
 
-    def evaluate(self, lhs, rhs, environment):
-        pass
+    def binary_evaluate(self, lhs, rhs, environment):
+        return lhs - rhs
 
 
 class MultiplyOperator(LeafNode, BinaryEvaluable):
@@ -724,8 +779,8 @@ class MultiplyOperator(LeafNode, BinaryEvaluable):
     def token_type(cls):
         return tokens.TokenType.MULTIPLICATION
 
-    def evaluate(self, lhs, rhs, environment):
-        pass
+    def binary_evaluate(self, lhs, rhs, environment):
+        return lhs * rhs
 
 
 class DivisionOperator(LeafNode, BinaryEvaluable):
@@ -733,8 +788,8 @@ class DivisionOperator(LeafNode, BinaryEvaluable):
     def token_type(cls):
         return tokens.TokenType.DIVISION
 
-    def evaluate(self, lhs, rhs, environment):
-        pass
+    def binary_evaluate(self, lhs, rhs, environment):
+        return lhs // rhs
 
 
 class OrOperator(LeafNode, BinaryEvaluable):
@@ -742,8 +797,8 @@ class OrOperator(LeafNode, BinaryEvaluable):
     def token_type(cls):
         return tokens.TokenType.LOGICAL_OR
 
-    def evaluate(self, lhs, rhs, environment):
-        pass
+    def binary_evaluate(self, lhs, rhs, environment):
+        return bool(lhs) or bool(rhs)
 
 
 class AndOperator(LeafNode, BinaryEvaluable):
@@ -751,8 +806,8 @@ class AndOperator(LeafNode, BinaryEvaluable):
     def token_type(cls):
         return tokens.TokenType.LOGICAL_AND
 
-    def evaluate(self, lhs, rhs, environment):
-        pass
+    def binary_evaluate(self, lhs, rhs, environment):
+        return bool(lhs) and bool(rhs)
 
 
 class EqualOperator(LeafNode, BinaryEvaluable):
@@ -760,8 +815,8 @@ class EqualOperator(LeafNode, BinaryEvaluable):
     def token_type(cls):
         return tokens.TokenType.EQUALS
 
-    def evaluate(self, lhs, rhs, environment):
-        pass
+    def binary_evaluate(self, lhs, rhs, environment):
+        return lhs == rhs
 
 
 class NotEqualOperator(LeafNode, BinaryEvaluable):
@@ -769,8 +824,8 @@ class NotEqualOperator(LeafNode, BinaryEvaluable):
     def token_type(cls):
         return tokens.TokenType.NOT_EQUALS
 
-    def evaluate(self, lhs, rhs, environment):
-        pass
+    def binary_evaluate(self, lhs, rhs, environment):
+        return lhs != rhs
 
 
 class GreaterOperator(LeafNode, BinaryEvaluable):
@@ -778,8 +833,8 @@ class GreaterOperator(LeafNode, BinaryEvaluable):
     def token_type(cls):
         return tokens.TokenType.GREATER
 
-    def evaluate(self, lhs, rhs, environment):
-        pass
+    def binary_evaluate(self, lhs, rhs, environment):
+        return lhs > rhs
 
 
 class GreaterOrEqualOperator(LeafNode, BinaryEvaluable):
@@ -787,8 +842,8 @@ class GreaterOrEqualOperator(LeafNode, BinaryEvaluable):
     def token_type(cls):
         return tokens.TokenType.GREATER_OR_EQUAL
 
-    def evaluate(self, lhs, rhs, environment):
-        pass
+    def binary_evaluate(self, lhs, rhs, environment):
+        return lhs >= rhs
 
 
 class LessOperator(LeafNode, BinaryEvaluable):
@@ -796,8 +851,8 @@ class LessOperator(LeafNode, BinaryEvaluable):
     def token_type(cls):
         return tokens.TokenType.LESS
 
-    def evaluate(self, lhs, rhs, environment):
-        pass
+    def binary_evaluate(self, lhs, rhs, environment):
+        return lhs < rhs
 
 
 class LessOrEqualOperator(LeafNode, BinaryEvaluable):
@@ -805,8 +860,8 @@ class LessOrEqualOperator(LeafNode, BinaryEvaluable):
     def token_type(cls):
         return tokens.TokenType.LESS_OR_EQUAL
 
-    def evaluate(self, lhs, rhs, environment):
-        pass
+    def binary_evaluate(self, lhs, rhs, environment):
+        return lhs <= rhs
 
 
 class MathNegationOperator(LeafNode, UnaryEvaluable):
@@ -814,8 +869,8 @@ class MathNegationOperator(LeafNode, UnaryEvaluable):
     def token_type(cls):
         return tokens.TokenType.MINUS
 
-    def evaluate(self, rhs, environment):
-        pass
+    def unary_evaluate(self, rhs, environment):
+        return -rhs
 
 
 class LogicNegationOperator(LeafNode, UnaryEvaluable):
@@ -823,71 +878,92 @@ class LogicNegationOperator(LeafNode, UnaryEvaluable):
     def token_type(cls):
         return tokens.TokenType.NOT
 
-    def evaluate(self, rhs, environment):
-        pass
+    def unary_evaluate(self, rhs, environment):
+        return not bool(rhs)
 
 
-class Years(LeafNode, UnaryEvaluable):
+class Years(LeafNode, UnaryEvaluable, SelfEvaluable):
     @classmethod
     def token_type(cls):
         return tokens.TokenType.YEARS
 
-    def evaluate(self, rhs, environment):
-        pass
+    def unary_evaluate(self, rhs, environment):
+        return rhs.get_years()
+
+    def self_evaluate(self, environment):
+        return tokens.TimedeltaValue(years=1)
 
 
-class Months(LeafNode, UnaryEvaluable):
+class Months(LeafNode, UnaryEvaluable, SelfEvaluable):
     @classmethod
     def token_type(cls):
         return tokens.TokenType.MONTHS
 
-    def evaluate(self, rhs, environment):
-        pass
+    def unary_evaluate(self, rhs, environment):
+        return rhs.get_months()
+
+    def self_evaluate(self, environment):
+        return tokens.TimedeltaValue(months=1)
 
 
-class Weeks(LeafNode, UnaryEvaluable):
+class Weeks(LeafNode, UnaryEvaluable, SelfEvaluable):
     @classmethod
     def token_type(cls):
         return tokens.TokenType.WEEKS
 
-    def evaluate(self, rhs, environment):
-        pass
+    def unary_evaluate(self, rhs, environment):
+        return rhs.get_weeks()
+
+    def self_evaluate(self, environment):
+        return tokens.TimedeltaValue(weeks=1)
 
 
-class Days(LeafNode, UnaryEvaluable):
+class Days(LeafNode, UnaryEvaluable, SelfEvaluable):
     @classmethod
     def token_type(cls):
         return tokens.TokenType.DAYS
 
-    def evaluate(self, rhs, environment):
-        pass
+    def unary_evaluate(self, rhs, environment):
+        return rhs.get_days()
+
+    def self_evaluate(self, environment):
+        return tokens.TimedeltaValue(days=1)
 
 
-class Hours(LeafNode, UnaryEvaluable):
+class Hours(LeafNode, UnaryEvaluable, SelfEvaluable):
     @classmethod
     def token_type(cls):
         return tokens.TokenType.HOURS
 
-    def evaluate(self, rhs, environment):
-        pass
+    def unary_evaluate(self, rhs, environment):
+        return rhs.get_hours()
+
+    def self_evaluate(self, environment):
+        return tokens.TimedeltaValue(hours=1)
 
 
-class Minutes(LeafNode, UnaryEvaluable):
+class Minutes(LeafNode, UnaryEvaluable, SelfEvaluable):
     @classmethod
     def token_type(cls):
         return tokens.TokenType.MINUTES
 
-    def evaluate(self, rhs, environment):
-        pass
+    def unary_evaluate(self, rhs, environment):
+        return rhs.get_minutes()
+
+    def self_evaluate(self, environment):
+        return tokens.TimedeltaValue(minutes=1)
 
 
-class Seconds(LeafNode, UnaryEvaluable):
+class Seconds(LeafNode, UnaryEvaluable, SelfEvaluable):
     @classmethod
     def token_type(cls):
         return tokens.TokenType.SECONDS
 
-    def evaluate(self, rhs, environment):
-        pass
+    def unary_evaluate(self, rhs, environment):
+        return rhs.get_seconds()
+
+    def self_evaluate(self, environment):
+        return tokens.TimedeltaValue(seconds=1)
 
 
 class NumberLiteral(LeafNode, SelfEvaluable):
@@ -895,8 +971,8 @@ class NumberLiteral(LeafNode, SelfEvaluable):
     def token_type(cls):
         return tokens.TokenType.NUMBER_LITERAL
 
-    def evaluate(self, environment):
-        pass
+    def self_evaluate(self, environment):
+        return self.token.get_value()
 
 
 class StringLiteral(LeafNode, SelfEvaluable):
@@ -904,8 +980,8 @@ class StringLiteral(LeafNode, SelfEvaluable):
     def token_type(cls):
         return tokens.TokenType.STRING_LITERAL
 
-    def evaluate(self, environment):
-        pass
+    def self_evaluate(self, environment):
+        return self.token.get_value()
 
 
 class DateLiteral(LeafNode, SelfEvaluable):
@@ -913,8 +989,8 @@ class DateLiteral(LeafNode, SelfEvaluable):
     def token_type(cls):
         return tokens.TokenType.DATE_LITERAL
 
-    def evaluate(self, environment):
-        pass
+    def self_evaluate(self, environment):
+        return self.token.get_value()
 
 
 class TimeLiteral(LeafNode, SelfEvaluable):
@@ -922,8 +998,8 @@ class TimeLiteral(LeafNode, SelfEvaluable):
     def token_type(cls):
         return tokens.TokenType.TIME_LITERAL
 
-    def evaluate(self, environment):
-        pass
+    def self_evaluate(self, environment):
+        return self.token.get_value()
 
 
 class DateTimeLiteral(LeafNode, SelfEvaluable):
@@ -931,8 +1007,8 @@ class DateTimeLiteral(LeafNode, SelfEvaluable):
     def token_type(cls):
         return tokens.TokenType.DATETIME_LITERAL
 
-    def evaluate(self, environment):
-        pass
+    def self_evaluate(self, environment):
+        return self.token.get_value()
 
 
 class TimedeltaLiteral(LeafNode, SelfEvaluable):
@@ -940,8 +1016,8 @@ class TimedeltaLiteral(LeafNode, SelfEvaluable):
     def token_type(cls):
         return tokens.TokenType.TIMEDELTA_LITERAL
 
-    def evaluate(self, environment):
-        pass
+    def self_evaluate(self, environment):
+        return self.token.get_value()
 
 
 class IdentifierFirstValue(ReducibleNode, SelfEvaluable):
@@ -962,29 +1038,14 @@ class IdentifierFirstValue(ReducibleNode, SelfEvaluable):
     def get_children(self):
         return [self.value]
 
-    def evaluate(self, environment):
-        pass
+    def self_evaluate(self, environment):
+        return self.value.self_evaluate(environment)
 
 
-class FunctionCall(BaseNode, SelfEvaluable):
+class FunctionCall(BaseNode, Executable, SelfEvaluable):
     def __init__(self, lexer,
                  identifier):  # have to pass identifier as it was already parsed above (because of ambiguity)
         self.identifier = identifier
-        self.parameters = ParametersCall(lexer)
-
-    @classmethod
-    def _starting_nodes(cls):
-        return {ParametersCall}
-
-    def get_children(self):
-        return [self.identifier, self.parameters]
-
-    def evaluate(self, environment):
-        pass
-
-
-class ParametersCall(BaseNode, SelfEvaluable):
-    def __init__(self, lexer):
         LeftParenthesis(lexer)
         self.parameters = []
         token = lexer.peek()
@@ -1002,10 +1063,22 @@ class ParametersCall(BaseNode, SelfEvaluable):
         return {LeftParenthesis}
 
     def get_children(self):
-        return self.parameters
+        return [self.identifier] + self.parameters
 
-    def evaluate(self, environment):
-        pass
+    def execute(self, environment):
+        self.self_evaluate(environment)
+
+    def self_evaluate(self, environment):
+        fun_node = environment.get_fun(self.identifier.token.get_value())
+        if len(fun_node.parameters.parameters) != len(self.parameters):
+            raise ValueError("TODO")
+        environment.push_scope()
+        fun_node.parameters.execute(environment)
+        for param_id, param_val in zip(fun_node.parameters.parameters, self.parameters):
+            environment.set_var(param_id.token.get_value(), param_val.self_evaluate(environment))
+        fun_node.body.execute(environment)
+        environment.pop_scope()
+        return 1  # TODO
 
 
 class TimeInfoAccess(BaseNode, SelfEvaluable):
@@ -1028,5 +1101,5 @@ class TimeInfoAccess(BaseNode, SelfEvaluable):
     def get_children(self):
         return [self.identifier, self.time_unit]
 
-    def evaluate(self, environment):
-        pass
+    def self_evaluate(self, environment):
+        return self.time_unit.unary_evaluate(self.identifier.token.get_value, environment)

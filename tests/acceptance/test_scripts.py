@@ -3,7 +3,7 @@ import os
 
 from timoninterpreter.source_readers import FileReader
 from timoninterpreter.lexical_analysis import Lexer
-from timoninterpreter.syntax_analysis import *
+from timoninterpreter.syntax_nodes import *
 from timoninterpreter import tokens
 
 
@@ -228,9 +228,8 @@ class ScriptsParsingTestCase(unittest.TestCase):
                         DateLiteral,
                 FunctionCall,
                     Identifier,
-                    ParametersCall,
-                        Identifier,
-                        Identifier
+                    Identifier,
+                    Identifier
         ]
 
         self.assert_tree(program, expected_tree)

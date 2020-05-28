@@ -2,6 +2,6 @@ var t1 = 15:57:23;
 var t2 = 20:45:00;
 var td = t2 - t1;
 var h = td.hours; # accessing specific timedelta info #
-var napis = "hours between " + t1 + " " + t2 + " : ";
+var napis = "hours between " + t1 + " and " + t2 + " : ";
 
 print napis + h;

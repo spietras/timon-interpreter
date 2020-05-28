@@ -1,5 +1,5 @@
 var start_time = 10.06.2020;
-var delay = '10W 10D';
+var delay = '5D 0s';
 
 var prev_t1 = 25.05.2020;
 var prev_t2 = 20.05.2020;

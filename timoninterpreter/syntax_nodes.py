@@ -890,6 +890,8 @@ class Years(LeafNode, UnaryEvaluable, SelfEvaluable):
         return tokens.TokenType.YEARS
 
     def unary_evaluate(self, rhs, environment):
+        if isinstance(rhs, (tokens.DateValue, tokens.DateTimeValue)):
+            return rhs.get_year()
         return rhs.get_years()
 
     def self_evaluate(self, environment):
@@ -902,6 +904,8 @@ class Months(LeafNode, UnaryEvaluable, SelfEvaluable):
         return tokens.TokenType.MONTHS
 
     def unary_evaluate(self, rhs, environment):
+        if isinstance(rhs, (tokens.DateValue, tokens.DateTimeValue)):
+            return rhs.get_year()
         return rhs.get_months()
 
     def self_evaluate(self, environment):
@@ -926,6 +930,8 @@ class Days(LeafNode, UnaryEvaluable, SelfEvaluable):
         return tokens.TokenType.DAYS
 
     def unary_evaluate(self, rhs, environment):
+        if isinstance(rhs, (tokens.DateValue, tokens.DateTimeValue)):
+            return rhs.get_day()
         return rhs.get_days()
 
     def self_evaluate(self, environment):
@@ -938,6 +944,8 @@ class Hours(LeafNode, UnaryEvaluable, SelfEvaluable):
         return tokens.TokenType.HOURS
 
     def unary_evaluate(self, rhs, environment):
+        if isinstance(rhs, (tokens.TimeValue, tokens.DateTimeValue)):
+            return rhs.get_hour()
         return rhs.get_hours()
 
     def self_evaluate(self, environment):
@@ -950,6 +958,8 @@ class Minutes(LeafNode, UnaryEvaluable, SelfEvaluable):
         return tokens.TokenType.MINUTES
 
     def unary_evaluate(self, rhs, environment):
+        if isinstance(rhs, (tokens.TimeValue, tokens.DateTimeValue)):
+            return rhs.get_minute()
         return rhs.get_minutes()
 
     def self_evaluate(self, environment):
@@ -962,6 +972,8 @@ class Seconds(LeafNode, UnaryEvaluable, SelfEvaluable):
         return tokens.TokenType.SECONDS
 
     def unary_evaluate(self, rhs, environment):
+        if isinstance(rhs, (tokens.TimeValue, tokens.DateTimeValue)):
+            return rhs.get_second()
         return rhs.get_seconds()
 
     def self_evaluate(self, environment):

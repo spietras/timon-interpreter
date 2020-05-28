@@ -762,6 +762,8 @@ class PlusOperator(LeafNode, BinaryEvaluable):
         return tokens.TokenType.PLUS
 
     def binary_evaluate(self, lhs, rhs, environment):
+        if isinstance(lhs, str) or isinstance(rhs, str):
+            lhs, rhs = str(lhs), str(rhs)
         return lhs + rhs
 
 

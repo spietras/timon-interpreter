@@ -70,14 +70,15 @@ multiplyOperator = "*" ;
 divisionOperator = "/" ;
 mathNegOperator = "-" ;
 
-identifierFirstValue = identifier, [ parametersCall | ".", ( "years" |
-                                                             "months" |
-                                                             "weeks" |
-                                                             "days" |
-                                                             "hours" |
-                                                             "minutes" |
-                                                             "seconds" ) ] ;
+identifierFirstValue = identifier, [ parametersCall | timeInfoAccess ] ;
 parametersCall = "(", [ expr, { ",", expr } ], ")" ;
+timeInfoAccess = ".", ( "years" |
+                        "months" |
+                        "weeks" |
+                        "days" |
+                        "hours" |
+                        "minutes" |
+                        "seconds" ) ;
 
 numberLiteral = "0" | ( nonZeroDigit, { digit } ) ;
 stringLiteral = '"', { stringCharacter }, '"' ;

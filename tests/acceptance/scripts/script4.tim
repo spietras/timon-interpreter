@@ -1,0 +1,19 @@
+fun getMonthDiff(d1,d2)
+{
+    return (d1 - d2).months + 12 * (d1 - d2).years;
+};
+
+fun getFirstDateOfNextMonth(date)
+{
+    from date to date + '1M' by days as d
+    {
+        if d.days == 1
+        {
+            return d;
+        };
+    };
+
+    return date;
+};
+
+print getMonthDiff(getFirstDateOfNextMonth(15.11.2021), getFirstDateOfNextMonth(28.05.2020));

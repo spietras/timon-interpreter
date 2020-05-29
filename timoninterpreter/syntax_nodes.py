@@ -247,7 +247,10 @@ class Identifier(LeafNode, SelfEvaluable):
         return tokens.TokenType.IDENTIFIER
 
     def self_evaluate(self, environment):
-        return environment.get_var(self.token.get_value())
+        try:
+            return environment.get_var(self.token.get_value())
+        except ValueError as e:
+            raise ExecutionError(self.token, str(e))
 
 
 class Program(BaseNode, Executable):
@@ -497,7 +500,9 @@ class ReturnStatement(BaseNode, Executable):
         return [self.expression]
 
     def execute(self, environment):
-        return True, self.expression.self_evaluate(environment)
+        if self.expression:
+            return True, self.expression.self_evaluate(environment)
+        return True, 0
 
 
 class ParametersDeclaration(BaseNode, Executable):
@@ -567,7 +572,7 @@ class Body(BaseNode, Executable):
             jumping, value = statement.execute(environment)
             if jumping:
                 return True, value
-        return False, None
+        return False, 0
 
 
 class Expression(ReducibleNode, SelfEvaluable):
@@ -990,7 +995,7 @@ class Months(LeafNode, UnaryEvaluable, SelfEvaluable):
     def unary_evaluate(self, rhs, environment):
         try:
             if isinstance(rhs, (tokens.DateValue, tokens.DateTimeValue)):
-                return rhs.get_year()
+                return rhs.get_month()
             return rhs.get_months()
         except AttributeError as e:
             raise ExecutionError(self.token, "Can't get months from {}".format(type(rhs).__name__))

@@ -322,7 +322,7 @@ class DateTimeValue:
         if isinstance(other, DateValue):
             return self == DateTimeValue(other.get_day(), other.get_month(), other.get_year(), 0, 0, 0)
         if isinstance(other, TimeValue):
-            return self == DateTimeValue(1, 1, 1, self.get_hour(), self.get_minute(), self.get_second())
+            return self == DateTimeValue(1, 1, 1, other.get_hour(), other.get_minute(), other.get_second())
         return NotImplemented
 
     def __lt__(self, other):

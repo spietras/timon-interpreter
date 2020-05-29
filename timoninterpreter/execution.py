@@ -30,6 +30,8 @@ class Environment:
     def get_var(self, identifier):
         for scope in reversed(self._scope_stack):
             if scope.exists_var(identifier):
+                if not scope.is_set_var(identifier):
+                    raise ValueError("Variable {} uninitialized".format(identifier))
                 return scope.get_var(identifier)
 
         raise ValueError("Variable {} undeclared".format(identifier))
@@ -52,6 +54,9 @@ class Scope:
 
     def exists_var(self, identifier):
         return identifier in self._variables
+
+    def is_set_var(self, identifier):
+        return self.exists_var(identifier) and self.get_var(identifier) is not None
 
     def set_var(self, identifier, value=None):
         self._variables[identifier] = value

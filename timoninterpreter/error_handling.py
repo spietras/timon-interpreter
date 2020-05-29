@@ -40,6 +40,14 @@ class SyntacticError(InterpreterError):
         self.token = token
 
 
+class ExecutionError(InterpreterError):
+    """Error raised during execution"""
+
+    def __init__(self, token, message):
+        super().__init__(message)
+        self.token = token
+
+
 # Reporting
 
 
@@ -102,3 +110,8 @@ def report_syntactic_error(token, message, stream=sys.stdout):
 
 def report_syntactic_warning(token, message, action, stream=sys.stdout):
     _report_positional_warning("Syntactic", token.get_file_pos(), message, action, stream)
+
+
+def report_execution_error(token, message, stream=sys.stdout):
+    _report_positional_error("Execution", token.get_file_pos(), message, stream)
+

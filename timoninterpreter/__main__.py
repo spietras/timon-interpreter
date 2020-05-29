@@ -5,6 +5,7 @@ Main script
 """
 
 import argparse
+import sys
 
 from timoninterpreter import error_handling
 from timoninterpreter import tokens
@@ -59,6 +60,7 @@ def run_lexer(path):
                 read_tokens.append(lex.get())
 
         display_tokens(read_tokens)
+        return 0
 
     except IOError as e:
         error_handling.report_generic_error("IO", str(e).capitalize())
@@ -66,8 +68,11 @@ def run_lexer(path):
         error_handling.report_lexical_error(e.file_pos, e.message)
     except error_handling.SyntacticError as e:
         error_handling.report_syntactic_error(e.token, e.message)
+    except error_handling.ExecutionError as e:
+        error_handling.report_execution_error(e.token, e.message)
     except Exception as e:
         error_handling.report_generic_error("Unknown", str(e).capitalize())
+    return 1
 
 
 def run_parser(path):
@@ -77,6 +82,7 @@ def run_parser(path):
             program = Program(lex)
 
         display_syntax_tree(program)
+        return 0
 
     except IOError as e:
         error_handling.report_generic_error("IO", str(e).capitalize())
@@ -84,8 +90,11 @@ def run_parser(path):
         error_handling.report_lexical_error(e.file_pos, e.message)
     except error_handling.SyntacticError as e:
         error_handling.report_syntactic_error(e.token, e.message)
+    except error_handling.ExecutionError as e:
+        error_handling.report_execution_error(e.token, e.message)
     except Exception as e:
         error_handling.report_generic_error("Unknown", str(e).capitalize())
+    return 1
 
 
 def run_execution(path):
@@ -94,7 +103,7 @@ def run_execution(path):
             lex = Lexer(fr)
             program = Program(lex)
 
-        program.execute(Environment())
+        return program.execute(Environment())
 
     except IOError as e:
         error_handling.report_generic_error("IO", str(e).capitalize())
@@ -102,8 +111,11 @@ def run_execution(path):
         error_handling.report_lexical_error(e.file_pos, e.message)
     except error_handling.SyntacticError as e:
         error_handling.report_syntactic_error(e.token, e.message)
+    except error_handling.ExecutionError as e:
+        error_handling.report_execution_error(e.token, e.message)
     except Exception as e:
         error_handling.report_generic_error("Unknown", str(e).capitalize())
+    return 1
 
 
 if __name__ == '__main__':
@@ -114,8 +126,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.stage == 'lexer':
-        run_lexer(args.path)
+        sys.exit(run_lexer(args.path))
     elif args.stage == 'parser':
-        run_parser(args.path)
+        sys.exit(run_parser(args.path))
     elif args.stage == 'execution':
-        run_execution(args.path)
+        sys.exit(run_execution(args.path))

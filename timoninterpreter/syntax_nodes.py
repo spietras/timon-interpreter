@@ -8,6 +8,7 @@ from abc import ABC, abstractmethod
 
 from timoninterpreter import tokens
 from timoninterpreter.error_handling import SyntacticError
+from timoninterpreter.error_handling import ExecutionError
 
 
 class BaseNode(ABC):
@@ -308,7 +309,10 @@ class VariableAssignmentStatement(BaseNode, Executable):
         return [self.identifier, self.expression]
 
     def execute(self, environment):
-        environment.set_var(self.identifier.token.get_value(), self.expression.self_evaluate(environment))
+        try:
+            environment.set_var(self.identifier.token.get_value(), self.expression.self_evaluate(environment))
+        except ValueError as e:
+            raise ExecutionError(self.identifier.token, str(e))
         return False, None
 
 
@@ -328,7 +332,10 @@ class FunctionDefinitionStatement(BaseNode, Executable):
         return [self.identifier, self.parameters, self.body]
 
     def execute(self, environment):
-        environment.set_fun(self.identifier.token.get_value(), self)
+        try:
+            environment.set_fun(self.identifier.token.get_value(), self)
+        except ValueError as e:
+            raise ExecutionError(self.identifier.token, str(e))
         return False, None
 
 
@@ -353,7 +360,10 @@ class VariableDefinitionStatement(BaseNode, Executable):
         return [self.identifier, self.assignment]
 
     def execute(self, environment):
-        environment.add_var(self.identifier.token.get_value())
+        try:
+            environment.add_var(self.identifier.token.get_value())
+        except ValueError as e:
+            raise ExecutionError(self.identifier.token, str(e))
         if self.assignment:
             self.assignment.execute(environment)
         return False, None
@@ -429,16 +439,25 @@ class FromStatement(BaseNode, Executable):
         end = self.end.self_evaluate(environment)
         step = self.time_unit.self_evaluate(environment)
 
-        while start <= end:
-            environment.push_scope()
-            environment.add_var(self.identifier.token.get_value())
-            environment.set_var(self.identifier.token.get_value(), start)
-            jumping, value = self.body.execute(environment)
-            environment.pop_scope()
-            if jumping:
-                return True, value
-            start += step
-        return False, None
+        try:
+            while start <= end:
+                environment.push_scope()
+                try:
+                    environment.add_var(self.identifier.token.get_value())
+                    environment.set_var(self.identifier.token.get_value(), start)
+                except ValueError as e:
+                    raise ExecutionError(self.identifier.token, str(e))
+                jumping, value = self.body.execute(environment)
+                environment.pop_scope()
+                if jumping:
+                    return True, value
+                try:
+                    start += step
+                except (ValueError, TypeError, OverflowError) as e:
+                    raise ExecutionError(self.start.token, str(e))
+            return False, None
+        except (ValueError, TypeError, OverflowError) as e:
+            raise ExecutionError(self.start.token, str(e))
 
 
 class PrintStatement(BaseNode, Executable):
@@ -504,7 +523,10 @@ class ParametersDeclaration(BaseNode, Executable):
 
     def execute(self, environment):
         for parameter in self.parameters:
-            environment.add_var(parameter.token.get_value())
+            try:
+                environment.add_var(parameter.token.get_value())
+            except ValueError as e:
+                raise ExecutionError(parameter.token, str(e))
 
 
 class Body(BaseNode, Executable):
@@ -779,9 +801,12 @@ class PlusOperator(LeafNode, BinaryEvaluable):
         return tokens.TokenType.PLUS
 
     def binary_evaluate(self, lhs, rhs, environment):
-        if isinstance(lhs, str) or isinstance(rhs, str):
-            lhs, rhs = str(lhs), str(rhs)
-        return lhs + rhs
+        try:
+            if isinstance(lhs, str) or isinstance(rhs, str):
+                lhs, rhs = str(lhs), str(rhs)
+            return lhs + rhs
+        except (ValueError, TypeError, OverflowError) as e:
+            raise ExecutionError(self.token, str(e))
 
 
 class MinusOperator(LeafNode, BinaryEvaluable):
@@ -790,7 +815,10 @@ class MinusOperator(LeafNode, BinaryEvaluable):
         return tokens.TokenType.MINUS
 
     def binary_evaluate(self, lhs, rhs, environment):
-        return lhs - rhs
+        try:
+            return lhs - rhs
+        except (ValueError, TypeError, OverflowError) as e:
+            raise ExecutionError(self.token, str(e))
 
 
 class MultiplyOperator(LeafNode, BinaryEvaluable):
@@ -799,7 +827,10 @@ class MultiplyOperator(LeafNode, BinaryEvaluable):
         return tokens.TokenType.MULTIPLICATION
 
     def binary_evaluate(self, lhs, rhs, environment):
-        return lhs * rhs
+        try:
+            return lhs * rhs
+        except (ValueError, TypeError, OverflowError) as e:
+            raise ExecutionError(self.token, str(e))
 
 
 class DivisionOperator(LeafNode, BinaryEvaluable):
@@ -808,7 +839,10 @@ class DivisionOperator(LeafNode, BinaryEvaluable):
         return tokens.TokenType.DIVISION
 
     def binary_evaluate(self, lhs, rhs, environment):
-        return lhs // rhs
+        try:
+            return lhs // rhs
+        except (ValueError, TypeError, OverflowError) as e:
+            raise ExecutionError(self.token, str(e))
 
 
 class OrOperator(LeafNode, BinaryEvaluable):
@@ -817,7 +851,10 @@ class OrOperator(LeafNode, BinaryEvaluable):
         return tokens.TokenType.LOGICAL_OR
 
     def binary_evaluate(self, lhs, rhs, environment):
-        return bool(lhs) or bool(rhs)
+        try:
+            return bool(lhs) or bool(rhs)
+        except (ValueError, TypeError, OverflowError) as e:
+            raise ExecutionError(self.token, str(e))
 
 
 class AndOperator(LeafNode, BinaryEvaluable):
@@ -826,7 +863,10 @@ class AndOperator(LeafNode, BinaryEvaluable):
         return tokens.TokenType.LOGICAL_AND
 
     def binary_evaluate(self, lhs, rhs, environment):
-        return bool(lhs) and bool(rhs)
+        try:
+            return bool(lhs) and bool(rhs)
+        except (ValueError, TypeError, OverflowError) as e:
+            raise ExecutionError(self.token, str(e))
 
 
 class EqualOperator(LeafNode, BinaryEvaluable):
@@ -835,7 +875,10 @@ class EqualOperator(LeafNode, BinaryEvaluable):
         return tokens.TokenType.EQUALS
 
     def binary_evaluate(self, lhs, rhs, environment):
-        return lhs == rhs
+        try:
+            return lhs == rhs
+        except (ValueError, TypeError, OverflowError) as e:
+            raise ExecutionError(self.token, str(e))
 
 
 class NotEqualOperator(LeafNode, BinaryEvaluable):
@@ -844,7 +887,10 @@ class NotEqualOperator(LeafNode, BinaryEvaluable):
         return tokens.TokenType.NOT_EQUALS
 
     def binary_evaluate(self, lhs, rhs, environment):
-        return lhs != rhs
+        try:
+            return lhs != rhs
+        except (ValueError, TypeError, OverflowError) as e:
+            raise ExecutionError(self.token, str(e))
 
 
 class GreaterOperator(LeafNode, BinaryEvaluable):
@@ -853,7 +899,10 @@ class GreaterOperator(LeafNode, BinaryEvaluable):
         return tokens.TokenType.GREATER
 
     def binary_evaluate(self, lhs, rhs, environment):
-        return lhs > rhs
+        try:
+            return lhs > rhs
+        except (ValueError, TypeError, OverflowError) as e:
+            raise ExecutionError(self.token, str(e))
 
 
 class GreaterOrEqualOperator(LeafNode, BinaryEvaluable):
@@ -862,7 +911,10 @@ class GreaterOrEqualOperator(LeafNode, BinaryEvaluable):
         return tokens.TokenType.GREATER_OR_EQUAL
 
     def binary_evaluate(self, lhs, rhs, environment):
-        return lhs >= rhs
+        try:
+            return lhs >= rhs
+        except (ValueError, TypeError, OverflowError) as e:
+            raise ExecutionError(self.token, str(e))
 
 
 class LessOperator(LeafNode, BinaryEvaluable):
@@ -871,7 +923,10 @@ class LessOperator(LeafNode, BinaryEvaluable):
         return tokens.TokenType.LESS
 
     def binary_evaluate(self, lhs, rhs, environment):
-        return lhs < rhs
+        try:
+            return lhs < rhs
+        except (ValueError, TypeError, OverflowError) as e:
+            raise ExecutionError(self.token, str(e))
 
 
 class LessOrEqualOperator(LeafNode, BinaryEvaluable):
@@ -880,7 +935,10 @@ class LessOrEqualOperator(LeafNode, BinaryEvaluable):
         return tokens.TokenType.LESS_OR_EQUAL
 
     def binary_evaluate(self, lhs, rhs, environment):
-        return lhs <= rhs
+        try:
+            return lhs <= rhs
+        except (ValueError, TypeError, OverflowError) as e:
+            raise ExecutionError(self.token, str(e))
 
 
 class MathNegationOperator(LeafNode, UnaryEvaluable):
@@ -889,7 +947,10 @@ class MathNegationOperator(LeafNode, UnaryEvaluable):
         return tokens.TokenType.MINUS
 
     def unary_evaluate(self, rhs, environment):
-        return -rhs
+        try:
+            return -rhs
+        except (ValueError, TypeError, OverflowError) as e:
+            raise ExecutionError(self.token, str(e))
 
 
 class LogicNegationOperator(LeafNode, UnaryEvaluable):
@@ -898,7 +959,10 @@ class LogicNegationOperator(LeafNode, UnaryEvaluable):
         return tokens.TokenType.NOT
 
     def unary_evaluate(self, rhs, environment):
-        return not bool(rhs)
+        try:
+            return not bool(rhs)
+        except (ValueError, TypeError, OverflowError) as e:
+            raise ExecutionError(self.token, str(e))
 
 
 class Years(LeafNode, UnaryEvaluable, SelfEvaluable):
@@ -907,9 +971,12 @@ class Years(LeafNode, UnaryEvaluable, SelfEvaluable):
         return tokens.TokenType.YEARS
 
     def unary_evaluate(self, rhs, environment):
-        if isinstance(rhs, (tokens.DateValue, tokens.DateTimeValue)):
-            return rhs.get_year()
-        return rhs.get_years()
+        try:
+            if isinstance(rhs, (tokens.DateValue, tokens.DateTimeValue)):
+                return rhs.get_year()
+            return rhs.get_years()
+        except AttributeError as e:
+            raise ExecutionError(self.token, "Can't get years from {}".format(type(rhs).__name__))
 
     def self_evaluate(self, environment):
         return tokens.TimedeltaValue(years=1)
@@ -921,9 +988,12 @@ class Months(LeafNode, UnaryEvaluable, SelfEvaluable):
         return tokens.TokenType.MONTHS
 
     def unary_evaluate(self, rhs, environment):
-        if isinstance(rhs, (tokens.DateValue, tokens.DateTimeValue)):
-            return rhs.get_year()
-        return rhs.get_months()
+        try:
+            if isinstance(rhs, (tokens.DateValue, tokens.DateTimeValue)):
+                return rhs.get_year()
+            return rhs.get_months()
+        except AttributeError as e:
+            raise ExecutionError(self.token, "Can't get months from {}".format(type(rhs).__name__))
 
     def self_evaluate(self, environment):
         return tokens.TimedeltaValue(months=1)
@@ -935,7 +1005,10 @@ class Weeks(LeafNode, UnaryEvaluable, SelfEvaluable):
         return tokens.TokenType.WEEKS
 
     def unary_evaluate(self, rhs, environment):
-        return rhs.get_weeks()
+        try:
+            return rhs.get_weeks()
+        except AttributeError as e:
+            raise ExecutionError(self.token, "Can't get weeks from {}".format(type(rhs).__name__))
 
     def self_evaluate(self, environment):
         return tokens.TimedeltaValue(weeks=1)
@@ -947,9 +1020,12 @@ class Days(LeafNode, UnaryEvaluable, SelfEvaluable):
         return tokens.TokenType.DAYS
 
     def unary_evaluate(self, rhs, environment):
-        if isinstance(rhs, (tokens.DateValue, tokens.DateTimeValue)):
-            return rhs.get_day()
-        return rhs.get_days()
+        try:
+            if isinstance(rhs, (tokens.DateValue, tokens.DateTimeValue)):
+                return rhs.get_day()
+            return rhs.get_days()
+        except AttributeError as e:
+            raise ExecutionError(self.token, "Can't get days from {}".format(type(rhs).__name__))
 
     def self_evaluate(self, environment):
         return tokens.TimedeltaValue(days=1)
@@ -961,9 +1037,12 @@ class Hours(LeafNode, UnaryEvaluable, SelfEvaluable):
         return tokens.TokenType.HOURS
 
     def unary_evaluate(self, rhs, environment):
-        if isinstance(rhs, (tokens.TimeValue, tokens.DateTimeValue)):
-            return rhs.get_hour()
-        return rhs.get_hours()
+        try:
+            if isinstance(rhs, (tokens.TimeValue, tokens.DateTimeValue)):
+                return rhs.get_hour()
+            return rhs.get_hours()
+        except AttributeError as e:
+            raise ExecutionError(self.token, "Can't get hours from {}".format(type(rhs).__name__))
 
     def self_evaluate(self, environment):
         return tokens.TimedeltaValue(hours=1)
@@ -975,9 +1054,12 @@ class Minutes(LeafNode, UnaryEvaluable, SelfEvaluable):
         return tokens.TokenType.MINUTES
 
     def unary_evaluate(self, rhs, environment):
-        if isinstance(rhs, (tokens.TimeValue, tokens.DateTimeValue)):
-            return rhs.get_minute()
-        return rhs.get_minutes()
+        try:
+            if isinstance(rhs, (tokens.TimeValue, tokens.DateTimeValue)):
+                return rhs.get_minute()
+            return rhs.get_minutes()
+        except AttributeError as e:
+            raise ExecutionError(self.token, "Can't get minutes from {}".format(type(rhs).__name__))
 
     def self_evaluate(self, environment):
         return tokens.TimedeltaValue(minutes=1)
@@ -989,9 +1071,12 @@ class Seconds(LeafNode, UnaryEvaluable, SelfEvaluable):
         return tokens.TokenType.SECONDS
 
     def unary_evaluate(self, rhs, environment):
-        if isinstance(rhs, (tokens.TimeValue, tokens.DateTimeValue)):
-            return rhs.get_second()
-        return rhs.get_seconds()
+        try:
+            if isinstance(rhs, (tokens.TimeValue, tokens.DateTimeValue)):
+                return rhs.get_second()
+            return rhs.get_seconds()
+        except AttributeError as e:
+            raise ExecutionError(self.token, "Can't get seconds from {}".format(type(rhs).__name__))
 
     def self_evaluate(self, environment):
         return tokens.TimedeltaValue(seconds=1)
@@ -1079,13 +1164,19 @@ class FunctionCall(BaseNode, Executable, SelfEvaluable):
         return False, None
 
     def self_evaluate(self, environment):
-        fun_node = environment.get_fun(self.identifier.token.get_value())
+        try:
+            fun_node = environment.get_fun(self.identifier.token.get_value())
+        except ValueError as e:
+            raise ExecutionError(self.identifier.token, str(e))
         if len(fun_node.parameters.parameters) != len(self.parameters):
             raise ValueError("TODO")
         environment.push_scope()
         fun_node.parameters.execute(environment)
         for param_id, param_val in zip(fun_node.parameters.parameters, self.parameters):
-            environment.set_var(param_id.token.get_value(), param_val.self_evaluate(environment))
+            try:
+                environment.set_var(param_id.token.get_value(), param_val.self_evaluate(environment))
+            except ValueError as e:
+                raise ExecutionError(param_id.token, str(e))
         _, value = fun_node.body.execute(environment)
         environment.pop_scope()
         return value

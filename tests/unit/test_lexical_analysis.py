@@ -391,6 +391,10 @@ class LexerStringLiteralTestCase(BaseLexerTestCase):
     def test_get_string_literal_with_escape(self, mock_open):
         self.assert_token(tokens.TokenType.STRING_LITERAL, "abc\"abc")
 
+    @mock.patch('builtins.open', return_value=io.StringIO('"abc\\abc"'))
+    def test_get_string_literal_with_escape_without_bound(self, mock_open):
+        self.assert_token(tokens.TokenType.STRING_LITERAL, "abc\\abc")
+
     @mock.patch('builtins.open', return_value=io.StringIO('"abcreturnabc"'))
     def test_get_string_literal_with_keyword(self, mock_open):
         self.assert_token(tokens.TokenType.STRING_LITERAL, "abcreturnabc")

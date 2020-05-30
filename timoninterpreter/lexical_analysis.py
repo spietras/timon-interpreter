@@ -291,7 +291,7 @@ class StringLiteralSubLexer(SubLexer):
                 self.make_error(
                     "String literal is too long. Maximum size is {} characters (excluding bounds and escapes)".format(
                         self.MAX_STRING_LITERAL_LENGTH))
-            if is_escape(next_character):
+            if is_escape(next_character) and is_string_literal_bound(self.source_reader.peek(2)[1]):
                 self.source_reader.get()
             string_value += self.source_reader.get()
             next_character = self.source_reader.peek()

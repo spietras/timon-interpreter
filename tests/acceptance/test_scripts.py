@@ -1,6 +1,8 @@
 import unittest
+import unittest.mock as mock
 import os
 
+from timoninterpreter.execution import Environment
 from timoninterpreter.source_readers import FileReader
 from timoninterpreter.lexical_analysis import Lexer
 from timoninterpreter.syntax_nodes import *
@@ -168,7 +170,7 @@ class ScriptsTokensTestCase(unittest.TestCase):
                            (tokens.TokenType.PLUS,                   None),
                            (tokens.TokenType.IDENTIFIER,             "t1"),
                            (tokens.TokenType.PLUS,                   None),
-                           (tokens.TokenType.STRING_LITERAL,         " "),
+                           (tokens.TokenType.STRING_LITERAL,         " and "),
                            (tokens.TokenType.PLUS,                   None),
                            (tokens.TokenType.IDENTIFIER,             "t2"),
                            (tokens.TokenType.PLUS,                   None),
@@ -272,7 +274,7 @@ class ScriptsTokensTestCase(unittest.TestCase):
 class ScriptsParsingTestCase(unittest.TestCase):
     def assert_tree(self, node, expected_tree):
         tree = [type(node)] + list(ScriptsParsingTestCase._get_tree(node))
-        self.assertEqual(tree, expected_tree)
+        self.assertEqual(expected_tree, tree)
 
     @staticmethod
     def _get_tree(node):
@@ -395,9 +397,10 @@ class ScriptsParsingTestCase(unittest.TestCase):
                     Identifier,
                     VariableAssignmentStatement,
                         Identifier,
-                        TimeInfoAccess,
+                        MathTerm,
                             Identifier,
-                            Hours,
+                            TimeInfoAccess,
+                                Hours,
                 VariableDefinitionStatement,
                     Identifier,
                     VariableAssignmentStatement,
@@ -491,3 +494,25 @@ class ScriptsParsingTestCase(unittest.TestCase):
         ]
 
         self.assert_tree(program, expected_tree)
+
+
+class ScriptsExecutionTestCase(unittest.TestCase):
+    def assert_printed(self, mocked_print, path, expected_print_calls):
+        get_program(get_path(path)).execute(Environment())
+        self.assertEqual(mocked_print.mock_calls, [mock.call(s) for s in expected_print_calls])
+
+    @mock.patch('builtins.print')
+    def test_script1(self, mocked_print):
+        self.assert_printed(mocked_print, "scripts/script1.tim", ["10.04.2018~10:57:00", "11.04.2018~10:57:00"])
+
+    @mock.patch('builtins.print')
+    def test_script2(self, mocked_print):
+        self.assert_printed(mocked_print, "scripts/script2.tim", ["we have time"])
+
+    @mock.patch('builtins.print')
+    def test_script3(self, mocked_print):
+        self.assert_printed(mocked_print, "scripts/script3.tim", ["hours between 15:57:23 and 20:45:00 : 4"])
+
+    @mock.patch('builtins.print')
+    def test_script4(self, mocked_print):
+        self.assert_printed(mocked_print, "scripts/script4.tim", ["18"])

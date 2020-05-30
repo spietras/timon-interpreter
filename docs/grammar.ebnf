@@ -1,4 +1,4 @@
-program = { functionDefinitionStatement |
+program = { functionDefStatement |
             identifierFirstStatement |
             variableDefinitionStatement |
             ifStatement |
@@ -8,7 +8,7 @@ program = { functionDefinitionStatement |
 
 identifierFirstStatement = identifier, ( parameters | assignment ) ;
 
-functionDefinitionStatement = "fun", identifier, parametersDeclaration, body ;
+functionDefStatement = "fun", identifier, parametersDeclaration, body ;
 variableDefinitionStatement = "var", identifier, [ assignment ] ;
 ifStatement = "if", expr, body, [ "else", body ] ;
 fromStatement = "from", fromRange, fromStep, fromIterator, body ;
@@ -37,21 +37,24 @@ fromIterator = "as", identifier ;
 
 expr = logicAndExpr, { orOperator, logicAndExpr } ;
 logicAndExpr = logicEqualExpr, { andOperator, logicEqualExpr } ;
-logicEqualExpr = logicRelExpr, [ ( equalOperator | notEqualOperator ) , logicRelExpr ] ;
-logicRelExpr = logicTerm, [ ( greaterOperator | greaterOrEqualOperator | lessOperator | lessOrEqualOperator ), logicTerm ] ;
+logicEqualExpr = logicRelExpr, [ equalityOperator , logicRelExpr ] ;
+logicRelExpr = logicTerm, [ relationalOperator, logicTerm ] ;
 logicTerm = [ logicNegOperator ], mathExpr ;
-mathExpr = multMathExpr, { ( plusOperator | minusOperator ), multMathExpr } ;
-multMathExpr = mathTerm, { ( multiplyOperator | divisionOperator ), mathTerm } ;
-mathTerm = [ mathNegOperator ], ( numberLiteral |
-                                  stringLiteral |
-                                  dateLiteral |
-                                  timeLiteral |
-                                  datetimeLiteral |
-                                  timedeltaLiteral |
-                                  identifierFirstValue |
-                                  parenthesisedExpr ), [ timeInfoAccess ];
+mathExpr = multMathExpr, { additiveOperator, multMathExpr } ;
+multMathExpr = mathTerm, { multiplicativeOperator, mathTerm } ;
+mathTerm = [ mathNegOperator ],
+           ( value | parenthesisedExpr ),
+           [ timeInfoAccess ];
 
 parenthesisedExpr = "(", expr, ")" ;
+
+equalityOperator = equalOperator | notEqualOperator ;
+relationalOperator = greaterOperator |
+                     greaterOrEqualOperator |
+                     lessOperator |
+                     lessOrEqualOperator ;
+additiveOperator = plusOperator | minusOperator ;
+multiplicativeOperator = multiplyOperator | divisionOperator ;
 
 assignmentOperator = "=" ;
 orOperator = "|" ;
@@ -69,6 +72,14 @@ minusOperator = "-" ;
 multiplyOperator = "*" ;
 divisionOperator = "/" ;
 mathNegOperator = "-" ;
+
+value = numberLiteral |
+        stringLiteral |
+        dateLiteral |
+        timeLiteral |
+        datetimeLiteral |
+        timedeltaLiteral |
+        identifierFirstValue ;
 
 identifierFirstValue = identifier, [ parametersCall ] ;
 parametersCall = "(", [ expr, { ",", expr } ], ")" ;
@@ -95,7 +106,7 @@ identifier = nonDigitCharacter, { character } ;
 nonDigitCharacter = letter | specialCharacter ;
 character = nonDigitCharacter | digit ;
 
-stringCharacter = ? all visible characters ? - '"' ;
+stringCharacter = ( ? all visible characters ? - '"' ) | '\"' ;
 
 letter = "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" |
          "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" |
@@ -111,3 +122,5 @@ four_digits = 4 * digit ;
 
 digit = "0" | nonZeroDigit ;
 nonZeroDigit = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+
+comment = '#', stringCharacter - '#', '#' ;

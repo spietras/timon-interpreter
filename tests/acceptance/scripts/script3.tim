@@ -1,7 +1,20 @@
-var t1 = 15:57:23;
-var t2 = 20:45:00;
-var td = t2 - t1;
-var h = td.hours; # accessing specific timedelta info #
-var napis = "hours between " + t1 + " and " + t2 + " : ";
+fun getMonthDiff(d1,d2)
+{
+    return (d1 - d2).months + 12 * (d1 - d2).years;
+};
 
-print napis + h;
+fun getFirstDateOfNextMonth(date)
+{
+    from date to date + '1M' by days as d
+    {
+        if d.days == 1
+        {
+            return d;
+        };
+    };
+
+    return date;
+};
+
+print getMonthDiff(getFirstDateOfNextMonth(15.11.2021),
+      getFirstDateOfNextMonth(28.05.2020));

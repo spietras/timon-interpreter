@@ -135,57 +135,9 @@ class ScriptsTokensTestCase(unittest.TestCase):
                            (tokens.TokenType.SEMICOLON,              None)]
 
         self.assert_tokens(expected_tokens, read_tokens)
-
+        
     def test_script3(self):
         read_tokens = self.get_all_tokens(get_path('scripts/script3.tim'))
-
-        expected_tokens = [(tokens.TokenType.VAR,                    None),
-                           (tokens.TokenType.IDENTIFIER,             "t1"),
-                           (tokens.TokenType.ASSIGN,                 None),
-                           (tokens.TokenType.TIME_LITERAL,           tokens.TimeValue(15, 57, 23)),
-                           (tokens.TokenType.SEMICOLON,              None),
-                           (tokens.TokenType.VAR,                    None),
-                           (tokens.TokenType.IDENTIFIER,             "t2"),
-                           (tokens.TokenType.ASSIGN,                 None),
-                           (tokens.TokenType.TIME_LITERAL,           tokens.TimeValue(20, 45, 0)),
-                           (tokens.TokenType.SEMICOLON,              None),
-                           (tokens.TokenType.VAR,                    None),
-                           (tokens.TokenType.IDENTIFIER,             "td"),
-                           (tokens.TokenType.ASSIGN,                 None),
-                           (tokens.TokenType.IDENTIFIER,             "t2"),
-                           (tokens.TokenType.MINUS,                  None),
-                           (tokens.TokenType.IDENTIFIER,             "t1"),
-                           (tokens.TokenType.SEMICOLON,              None),
-                           (tokens.TokenType.VAR,                    None),
-                           (tokens.TokenType.IDENTIFIER,             "h"),
-                           (tokens.TokenType.ASSIGN,                 None),
-                           (tokens.TokenType.IDENTIFIER,             "td"),
-                           (tokens.TokenType.ACCESS,                 None),
-                           (tokens.TokenType.HOURS,                  None),
-                           (tokens.TokenType.SEMICOLON,              None),
-                           (tokens.TokenType.VAR,                    None),
-                           (tokens.TokenType.IDENTIFIER,             "napis"),
-                           (tokens.TokenType.ASSIGN,                 None),
-                           (tokens.TokenType.STRING_LITERAL,         "hours between "),
-                           (tokens.TokenType.PLUS,                   None),
-                           (tokens.TokenType.IDENTIFIER,             "t1"),
-                           (tokens.TokenType.PLUS,                   None),
-                           (tokens.TokenType.STRING_LITERAL,         " and "),
-                           (tokens.TokenType.PLUS,                   None),
-                           (tokens.TokenType.IDENTIFIER,             "t2"),
-                           (tokens.TokenType.PLUS,                   None),
-                           (tokens.TokenType.STRING_LITERAL,         " : "),
-                           (tokens.TokenType.SEMICOLON,              None),
-                           (tokens.TokenType.PRINT,                  None),
-                           (tokens.TokenType.IDENTIFIER,             "napis"),
-                           (tokens.TokenType.PLUS,                   None),
-                           (tokens.TokenType.IDENTIFIER,             "h"),
-                           (tokens.TokenType.SEMICOLON,              None)]
-
-        self.assert_tokens(expected_tokens, read_tokens)
-        
-    def test_script4(self):
-        read_tokens = self.get_all_tokens(get_path('scripts/script4.tim'))
 
         expected_tokens = [(tokens.TokenType.FUN,				     None),
                            (tokens.TokenType.IDENTIFIER,			 "getMonthDiff"),
@@ -267,6 +219,54 @@ class ScriptsTokensTestCase(unittest.TestCase):
                            (tokens.TokenType.RIGHT_PARENTHESIS,		 None),
                            (tokens.TokenType.SEMICOLON,				 None),
                            (tokens.TokenType.END,					 None)]
+
+        self.assert_tokens(expected_tokens, read_tokens)
+
+    def test_script4(self):
+        read_tokens = self.get_all_tokens(get_path('scripts/script4.tim'))
+
+        expected_tokens = [(tokens.TokenType.VAR,                    None),
+                           (tokens.TokenType.IDENTIFIER,             "t1"),
+                           (tokens.TokenType.ASSIGN,                 None),
+                           (tokens.TokenType.TIME_LITERAL,           tokens.TimeValue(15, 57, 23)),
+                           (tokens.TokenType.SEMICOLON,              None),
+                           (tokens.TokenType.VAR,                    None),
+                           (tokens.TokenType.IDENTIFIER,             "t2"),
+                           (tokens.TokenType.ASSIGN,                 None),
+                           (tokens.TokenType.TIME_LITERAL,           tokens.TimeValue(20, 45, 0)),
+                           (tokens.TokenType.SEMICOLON,              None),
+                           (tokens.TokenType.VAR,                    None),
+                           (tokens.TokenType.IDENTIFIER,             "td"),
+                           (tokens.TokenType.ASSIGN,                 None),
+                           (tokens.TokenType.IDENTIFIER,             "t2"),
+                           (tokens.TokenType.MINUS,                  None),
+                           (tokens.TokenType.IDENTIFIER,             "t1"),
+                           (tokens.TokenType.SEMICOLON,              None),
+                           (tokens.TokenType.VAR,                    None),
+                           (tokens.TokenType.IDENTIFIER,             "h"),
+                           (tokens.TokenType.ASSIGN,                 None),
+                           (tokens.TokenType.IDENTIFIER,             "td"),
+                           (tokens.TokenType.ACCESS,                 None),
+                           (tokens.TokenType.HOURS,                  None),
+                           (tokens.TokenType.SEMICOLON,              None),
+                           (tokens.TokenType.VAR,                    None),
+                           (tokens.TokenType.IDENTIFIER,             "napis"),
+                           (tokens.TokenType.ASSIGN,                 None),
+                           (tokens.TokenType.STRING_LITERAL,         "hours between "),
+                           (tokens.TokenType.PLUS,                   None),
+                           (tokens.TokenType.IDENTIFIER,             "t1"),
+                           (tokens.TokenType.PLUS,                   None),
+                           (tokens.TokenType.STRING_LITERAL,         " and "),
+                           (tokens.TokenType.PLUS,                   None),
+                           (tokens.TokenType.IDENTIFIER,             "t2"),
+                           (tokens.TokenType.PLUS,                   None),
+                           (tokens.TokenType.STRING_LITERAL,         " : "),
+                           (tokens.TokenType.SEMICOLON,              None),
+                           (tokens.TokenType.PRINT,                  None),
+                           (tokens.TokenType.IDENTIFIER,             "napis"),
+                           (tokens.TokenType.PLUS,                   None),
+                           (tokens.TokenType.IDENTIFIER,             "h"),
+                           (tokens.TokenType.SEMICOLON,              None)]
 
         self.assert_tokens(expected_tokens, read_tokens)
 
@@ -375,60 +375,6 @@ class ScriptsParsingTestCase(unittest.TestCase):
 
         expected_tree = [
             Program,
-                VariableDefinitionStatement,
-                    Identifier,
-                    VariableAssignmentStatement,
-                        Identifier,
-                        TimeLiteral,
-                VariableDefinitionStatement,
-                    Identifier,
-                    VariableAssignmentStatement,
-                        Identifier,
-                        TimeLiteral,
-                VariableDefinitionStatement,
-                    Identifier,
-                    VariableAssignmentStatement,
-                        Identifier,
-                        MathExpression,
-                            Identifier,
-                            MinusOperator,
-                            Identifier,
-                VariableDefinitionStatement,
-                    Identifier,
-                    VariableAssignmentStatement,
-                        Identifier,
-                        MathTerm,
-                            Identifier,
-                            TimeInfoAccess,
-                                Hours,
-                VariableDefinitionStatement,
-                    Identifier,
-                    VariableAssignmentStatement,
-                        Identifier,
-                        MathExpression,
-                            StringLiteral,
-                            PlusOperator,
-                            Identifier,
-                            PlusOperator,
-                            StringLiteral,
-                            PlusOperator,
-                            Identifier,
-                            PlusOperator,
-                            StringLiteral,
-                PrintStatement,
-                    MathExpression,
-                        Identifier,
-                        PlusOperator,
-                        Identifier
-        ]
-
-        self.assert_tree(program, expected_tree)
-
-    def test_script4(self):
-        program = get_program(get_path('scripts/script4.tim'))
-
-        expected_tree = [
-            Program,
                 FunctionDefinitionStatement,
                     Identifier,
                     ParametersDeclaration,
@@ -495,6 +441,60 @@ class ScriptsParsingTestCase(unittest.TestCase):
 
         self.assert_tree(program, expected_tree)
 
+    def test_script4(self):
+        program = get_program(get_path('scripts/script4.tim'))
+
+        expected_tree = [
+            Program,
+                VariableDefinitionStatement,
+                    Identifier,
+                    VariableAssignmentStatement,
+                        Identifier,
+                        TimeLiteral,
+                VariableDefinitionStatement,
+                    Identifier,
+                    VariableAssignmentStatement,
+                        Identifier,
+                        TimeLiteral,
+                VariableDefinitionStatement,
+                    Identifier,
+                    VariableAssignmentStatement,
+                        Identifier,
+                        MathExpression,
+                            Identifier,
+                            MinusOperator,
+                            Identifier,
+                VariableDefinitionStatement,
+                    Identifier,
+                    VariableAssignmentStatement,
+                        Identifier,
+                        MathTerm,
+                            Identifier,
+                            TimeInfoAccess,
+                                Hours,
+                VariableDefinitionStatement,
+                    Identifier,
+                    VariableAssignmentStatement,
+                        Identifier,
+                        MathExpression,
+                            StringLiteral,
+                            PlusOperator,
+                            Identifier,
+                            PlusOperator,
+                            StringLiteral,
+                            PlusOperator,
+                            Identifier,
+                            PlusOperator,
+                            StringLiteral,
+                PrintStatement,
+                    MathExpression,
+                        Identifier,
+                        PlusOperator,
+                        Identifier
+        ]
+
+        self.assert_tree(program, expected_tree)
+
 
 class ScriptsExecutionTestCase(unittest.TestCase):
     def assert_printed(self, mocked_print, path, expected_print_calls):
@@ -511,8 +511,8 @@ class ScriptsExecutionTestCase(unittest.TestCase):
 
     @mock.patch('builtins.print')
     def test_script3(self, mocked_print):
-        self.assert_printed(mocked_print, "scripts/script3.tim", ["hours between 15:57:23 and 20:45:00 : 4"])
+        self.assert_printed(mocked_print, "scripts/script3.tim", ["18"])
 
     @mock.patch('builtins.print')
     def test_script4(self, mocked_print):
-        self.assert_printed(mocked_print, "scripts/script4.tim", ["18"])
+        self.assert_printed(mocked_print, "scripts/script4.tim", ["hours between 15:57:23 and 20:45:00 : 4"])

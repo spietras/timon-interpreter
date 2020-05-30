@@ -477,7 +477,7 @@ class PrintStatement(BaseNode, Executable):
         return [self.expression]
 
     def execute(self, environment):
-        print(self.expression.self_evaluate(environment))
+        print(str(self.expression.self_evaluate(environment)))
         return False, None
 
 

@@ -57,26 +57,26 @@ class DateValueTestCase(unittest.TestCase):
             v = tokens.DateValue(27, 5, 2020) < tokens.TimeValue(19, 0, 0)
 
     def test_date_value_add_time_value(self):
-        self.assertEquals(tokens.DateValue(27, 5, 2020) + tokens.TimeValue(19, 0, 0),
-                          tokens.DateTimeValue(27, 5, 2020, 19, 0, 0))
+        self.assertEqual(tokens.DateValue(27, 5, 2020) + tokens.TimeValue(19, 0, 0),
+                         tokens.DateTimeValue(27, 5, 2020, 19, 0, 0))
 
     def test_date_value_add_timedelta_value(self):
-        self.assertEquals(tokens.DateValue(27, 5, 2020) + tokens.TimedeltaValue(days=10),
-                          tokens.DateTimeValue(6, 6, 2020, 0, 0, 0))
+        self.assertEqual(tokens.DateValue(27, 5, 2020) + tokens.TimedeltaValue(days=10),
+                         tokens.DateTimeValue(6, 6, 2020, 0, 0, 0))
 
     def test_date_value_add_timedelta_value_different_month_days(self):
-        self.assertEquals(tokens.DateValue(31, 5, 2020) + tokens.TimedeltaValue(months=1),
-                          tokens.DateTimeValue(30, 6, 2020, 0, 0, 0))
+        self.assertEqual(tokens.DateValue(31, 5, 2020) + tokens.TimedeltaValue(months=1),
+                         tokens.DateTimeValue(30, 6, 2020, 0, 0, 0))
 
     def test_date_value_add_timedelta_value_leap_year(self):
-        self.assertEquals(tokens.DateValue(29, 2, 2020) + tokens.TimedeltaValue(years=1),
-                          tokens.DateTimeValue(28, 2, 2021, 0, 0, 0))
+        self.assertEqual(tokens.DateValue(29, 2, 2020) + tokens.TimedeltaValue(years=1),
+                         tokens.DateTimeValue(28, 2, 2021, 0, 0, 0))
 
     def test_date_value_add_timedelta_value_different_month_days_and_leap_year(self):
-        self.assertEquals(tokens.DateValue(29, 2, 2020) + tokens.TimedeltaValue(years=1, months=1),
-                          tokens.DateTimeValue(29, 3, 2021, 0, 0, 0))
-        self.assertEquals(tokens.DateValue(31, 1, 2020) + tokens.TimedeltaValue(years=1, months=1),
-                          tokens.DateTimeValue(28, 2, 2021, 0, 0, 0))
+        self.assertEqual(tokens.DateValue(29, 2, 2020) + tokens.TimedeltaValue(years=1, months=1),
+                         tokens.DateTimeValue(29, 3, 2021, 0, 0, 0))
+        self.assertEqual(tokens.DateValue(31, 1, 2020) + tokens.TimedeltaValue(years=1, months=1),
+                         tokens.DateTimeValue(28, 2, 2021, 0, 0, 0))
 
     def test_date_value_add_date_value(self):
         with self.assertRaises(TypeError):
@@ -87,56 +87,56 @@ class DateValueTestCase(unittest.TestCase):
             val = tokens.DateValue(27, 5, 2020) + tokens.DateTimeValue(28, 5, 2020, 19, 0, 0)
 
     def test_date_value_sub_timedelta_value(self):
-        self.assertEquals(tokens.DateValue(6, 6, 2020) - tokens.TimedeltaValue(days=10),
-                          tokens.DateTimeValue(27, 5, 2020, 0, 0, 0))
+        self.assertEqual(tokens.DateValue(6, 6, 2020) - tokens.TimedeltaValue(days=10),
+                         tokens.DateTimeValue(27, 5, 2020, 0, 0, 0))
 
     def test_date_value_sub_timedelta_value_different_month_days(self):
-        self.assertEquals(tokens.DateValue(31, 5, 2020) - tokens.TimedeltaValue(months=1),
-                          tokens.DateTimeValue(30, 4, 2020, 0, 0, 0))
+        self.assertEqual(tokens.DateValue(31, 5, 2020) - tokens.TimedeltaValue(months=1),
+                         tokens.DateTimeValue(30, 4, 2020, 0, 0, 0))
 
     def test_date_value_sub_timedelta_value_leap_year(self):
-        self.assertEquals(tokens.DateValue(29, 2, 2020) + tokens.TimedeltaValue(years=1),
-                          tokens.DateTimeValue(28, 2, 2021, 0, 0, 0))
+        self.assertEqual(tokens.DateValue(29, 2, 2020) + tokens.TimedeltaValue(years=1),
+                         tokens.DateTimeValue(28, 2, 2021, 0, 0, 0))
 
     def test_date_value_sub_timedelta_value_different_month_days_and_leap_year(self):
-        self.assertEquals(tokens.DateValue(29, 2, 2020) - tokens.TimedeltaValue(years=1, months=1),
-                          tokens.DateTimeValue(29, 1, 2019, 0, 0, 0))
-        self.assertEquals(tokens.DateValue(31, 3, 2020) - tokens.TimedeltaValue(years=1, months=1),
-                          tokens.DateTimeValue(28, 2, 2019, 0, 0, 0))
+        self.assertEqual(tokens.DateValue(29, 2, 2020) - tokens.TimedeltaValue(years=1, months=1),
+                         tokens.DateTimeValue(29, 1, 2019, 0, 0, 0))
+        self.assertEqual(tokens.DateValue(31, 3, 2020) - tokens.TimedeltaValue(years=1, months=1),
+                         tokens.DateTimeValue(28, 2, 2019, 0, 0, 0))
 
     def test_date_value_sub_date_value(self):
-        self.assertEquals(tokens.DateValue(29, 2, 2020) - tokens.DateValue(28, 2, 2020), tokens.TimedeltaValue(days=1))
+        self.assertEqual(tokens.DateValue(29, 2, 2020) - tokens.DateValue(28, 2, 2020), tokens.TimedeltaValue(days=1))
 
     def test_date_value_sub_date_value_different_month_days(self):
-        self.assertEquals(tokens.DateValue(30, 6, 2020) - tokens.DateValue(31, 5, 2020),
-                          tokens.TimedeltaValue(months=1))
+        self.assertEqual(tokens.DateValue(30, 6, 2020) - tokens.DateValue(31, 5, 2020),
+                         tokens.TimedeltaValue(months=1))
 
     def test_date_value_sub_date_value_leap_year(self):
-        self.assertEquals(tokens.DateValue(28, 2, 2021) - tokens.DateValue(29, 2, 2020), tokens.TimedeltaValue(years=1))
+        self.assertEqual(tokens.DateValue(28, 2, 2021) - tokens.DateValue(29, 2, 2020), tokens.TimedeltaValue(years=1))
 
     def test_date_value_sub_date_value_different_month_days_and_leap_year(self):
-        self.assertEquals(tokens.DateValue(29, 3, 2021) - tokens.DateValue(29, 2, 2020),
-                          tokens.TimedeltaValue(years=1, months=1))
-        self.assertEquals(tokens.DateValue(28, 2, 2021) - tokens.DateValue(31, 1, 2020),
-                          tokens.TimedeltaValue(years=1, months=1))
+        self.assertEqual(tokens.DateValue(29, 3, 2021) - tokens.DateValue(29, 2, 2020),
+                         tokens.TimedeltaValue(years=1, months=1))
+        self.assertEqual(tokens.DateValue(28, 2, 2021) - tokens.DateValue(31, 1, 2020),
+                         tokens.TimedeltaValue(years=1, months=1))
 
     def test_date_value_sub_datetime_value(self):
-        self.assertEquals(tokens.DateValue(28, 2, 2021) - tokens.DateTimeValue(27, 2, 2021, 23, 59, 59),
-                          tokens.TimedeltaValue(seconds=1))
+        self.assertEqual(tokens.DateValue(28, 2, 2021) - tokens.DateTimeValue(27, 2, 2021, 23, 59, 59),
+                         tokens.TimedeltaValue(seconds=1))
 
     def test_date_value_sub_datetime_value_different_month_days(self):
-        self.assertEquals(tokens.DateValue(30, 6, 2020) - tokens.DateTimeValue(31, 5, 2020, 0, 0, 0),
-                          tokens.TimedeltaValue(months=1))
+        self.assertEqual(tokens.DateValue(30, 6, 2020) - tokens.DateTimeValue(31, 5, 2020, 0, 0, 0),
+                         tokens.TimedeltaValue(months=1))
 
     def test_date_value_sub_datetime_value_leap_year(self):
-        self.assertEquals(tokens.DateValue(28, 2, 2021) - tokens.DateTimeValue(29, 2, 2020, 0, 0, 0),
-                          tokens.TimedeltaValue(years=1))
+        self.assertEqual(tokens.DateValue(28, 2, 2021) - tokens.DateTimeValue(29, 2, 2020, 0, 0, 0),
+                         tokens.TimedeltaValue(years=1))
 
     def test_date_value_sub_datetime_value_different_month_days_and_leap_year(self):
-        self.assertEquals(tokens.DateValue(29, 3, 2021) - tokens.DateTimeValue(29, 2, 2020, 0, 0, 0),
-                          tokens.TimedeltaValue(years=1, months=1))
-        self.assertEquals(tokens.DateValue(28, 2, 2021) - tokens.DateTimeValue(31, 1, 2020, 0, 0, 0),
-                          tokens.TimedeltaValue(years=1, months=1))
+        self.assertEqual(tokens.DateValue(29, 3, 2021) - tokens.DateTimeValue(29, 2, 2020, 0, 0, 0),
+                         tokens.TimedeltaValue(years=1, months=1))
+        self.assertEqual(tokens.DateValue(28, 2, 2021) - tokens.DateTimeValue(31, 1, 2020, 0, 0, 0),
+                         tokens.TimedeltaValue(years=1, months=1))
 
     def test_date_value_sub_time_value(self):
         with self.assertRaises(TypeError):
@@ -191,16 +191,16 @@ class TimeValueTestCase(unittest.TestCase):
             v = tokens.TimeValue(19, 0, 0) < tokens.DateValue(27, 5, 2020)
 
     def test_time_value_add_date_value(self):
-        self.assertEquals(tokens.TimeValue(19, 0, 0) + tokens.DateValue(27, 5, 2020),
-                          tokens.DateTimeValue(27, 5, 2020, 19, 0, 0))
+        self.assertEqual(tokens.TimeValue(19, 0, 0) + tokens.DateValue(27, 5, 2020),
+                         tokens.DateTimeValue(27, 5, 2020, 19, 0, 0))
 
     def test_time_value_add_timedelta_value(self):
-        self.assertEquals(tokens.TimeValue(20, 37, 35) + tokens.TimedeltaValue(minutes=30),
-                          tokens.DateTimeValue(1, 1, 1, 21, 7, 35))
+        self.assertEqual(tokens.TimeValue(20, 37, 35) + tokens.TimedeltaValue(minutes=30),
+                         tokens.DateTimeValue(1, 1, 1, 21, 7, 35))
 
     def test_time_value_add_timedelta_value_another_day(self):
-        self.assertEquals(tokens.TimeValue(20, 37, 35) + tokens.TimedeltaValue(hours=4),
-                          tokens.DateTimeValue(2, 1, 1, 0, 37, 35))
+        self.assertEqual(tokens.TimeValue(20, 37, 35) + tokens.TimedeltaValue(hours=4),
+                         tokens.DateTimeValue(2, 1, 1, 0, 37, 35))
 
     def test_time_value_add_time_value(self):
         with self.assertRaises(TypeError):
@@ -211,19 +211,19 @@ class TimeValueTestCase(unittest.TestCase):
             val = tokens.TimeValue(20, 37, 35) + tokens.DateTimeValue(28, 5, 2020, 19, 0, 0)
 
     def test_time_value_sub_timedelta_value(self):
-        self.assertEquals(tokens.TimeValue(20, 37, 35) - tokens.TimedeltaValue(minutes=40),
-                          tokens.DateTimeValue(1, 1, 1, 19, 57, 35))
+        self.assertEqual(tokens.TimeValue(20, 37, 35) - tokens.TimedeltaValue(minutes=40),
+                         tokens.DateTimeValue(1, 1, 1, 19, 57, 35))
 
     def test_time_value_sub_timedelta_value_another_day(self):
         with self.assertRaises(OverflowError):
             val = tokens.TimeValue(20, 37, 35) - tokens.TimedeltaValue(hours=21)
 
     def test_time_value_sub_time_value(self):
-        self.assertEquals(tokens.TimeValue(20, 37, 35) - tokens.TimeValue(19, 37, 35), tokens.TimedeltaValue(hours=1))
+        self.assertEqual(tokens.TimeValue(20, 37, 35) - tokens.TimeValue(19, 37, 35), tokens.TimedeltaValue(hours=1))
 
     def test_time_value_sub_datetime_value(self):
-        self.assertEquals(tokens.TimeValue(20, 37, 35) - tokens.DateTimeValue(27, 2, 2021, 20, 27, 35),
-                          tokens.TimedeltaValue(minutes=10))
+        self.assertEqual(tokens.TimeValue(20, 37, 35) - tokens.DateTimeValue(27, 2, 2021, 20, 27, 35),
+                         tokens.TimedeltaValue(minutes=10))
 
     def test_time_value_sub_date_value(self):
         with self.assertRaises(TypeError):
@@ -301,26 +301,26 @@ class DateTimeValueTestCase(unittest.TestCase):
         self.assertFalse(tokens.DateTimeValue(1, 1, 1, 20, 37, 35) < tokens.TimeValue(20, 37, 34))
 
     def test_datetime_value_add_timedelta_value(self):
-        self.assertEquals(tokens.DateTimeValue(27, 5, 2020, 20, 37, 35) + tokens.TimedeltaValue(days=10, minutes=30),
-                          tokens.DateTimeValue(6, 6, 2020, 21, 7, 35))
+        self.assertEqual(tokens.DateTimeValue(27, 5, 2020, 20, 37, 35) + tokens.TimedeltaValue(days=10, minutes=30),
+                         tokens.DateTimeValue(6, 6, 2020, 21, 7, 35))
 
     def test_datetime_value_add_timedelta_value_different_month_days(self):
-        self.assertEquals(tokens.DateTimeValue(31, 5, 2020, 0, 0, 0) + tokens.TimedeltaValue(months=1),
-                          tokens.DateTimeValue(30, 6, 2020, 0, 0, 0))
+        self.assertEqual(tokens.DateTimeValue(31, 5, 2020, 0, 0, 0) + tokens.TimedeltaValue(months=1),
+                         tokens.DateTimeValue(30, 6, 2020, 0, 0, 0))
 
     def test_datetime_value_add_timedelta_value_leap_year(self):
-        self.assertEquals(tokens.DateTimeValue(29, 2, 2020, 0, 0, 0) + tokens.TimedeltaValue(years=1),
-                          tokens.DateTimeValue(28, 2, 2021, 0, 0, 0))
+        self.assertEqual(tokens.DateTimeValue(29, 2, 2020, 0, 0, 0) + tokens.TimedeltaValue(years=1),
+                         tokens.DateTimeValue(28, 2, 2021, 0, 0, 0))
 
     def test_datetime_value_add_timedelta_value_different_month_days_and_leap_year(self):
-        self.assertEquals(tokens.DateTimeValue(29, 2, 2020, 0, 0, 0) + tokens.TimedeltaValue(years=1, months=1),
-                          tokens.DateTimeValue(29, 3, 2021, 0, 0, 0))
-        self.assertEquals(tokens.DateTimeValue(31, 1, 2020, 0, 0, 0) + tokens.TimedeltaValue(years=1, months=1),
-                          tokens.DateTimeValue(28, 2, 2021, 0, 0, 0))
+        self.assertEqual(tokens.DateTimeValue(29, 2, 2020, 0, 0, 0) + tokens.TimedeltaValue(years=1, months=1),
+                         tokens.DateTimeValue(29, 3, 2021, 0, 0, 0))
+        self.assertEqual(tokens.DateTimeValue(31, 1, 2020, 0, 0, 0) + tokens.TimedeltaValue(years=1, months=1),
+                         tokens.DateTimeValue(28, 2, 2021, 0, 0, 0))
 
     def test_datetime_value_add_timedelta_value_another_day(self):
-        self.assertEquals(tokens.DateTimeValue(27, 5, 2020, 20, 37, 35) + tokens.TimedeltaValue(hours=4),
-                          tokens.DateTimeValue(28, 5, 2020, 0, 37, 35))
+        self.assertEqual(tokens.DateTimeValue(27, 5, 2020, 20, 37, 35) + tokens.TimedeltaValue(hours=4),
+                         tokens.DateTimeValue(28, 5, 2020, 0, 37, 35))
 
     def test_datetime_value_add_date_value(self):
         with self.assertRaises(TypeError):
@@ -335,63 +335,66 @@ class DateTimeValueTestCase(unittest.TestCase):
             tokens.DateTimeValue(27, 5, 2020, 20, 37, 35) + tokens.DateTimeValue(28, 5, 2020, 20, 37, 36)
 
     def test_datetime_value_sub_timedelta_value(self):
-        self.assertEquals(tokens.DateTimeValue(6, 6, 2020, 20, 37, 35) - tokens.TimedeltaValue(days=10, minutes=40),
-                          tokens.DateTimeValue(27, 5, 2020, 19, 57, 35))
+        self.assertEqual(tokens.DateTimeValue(6, 6, 2020, 20, 37, 35) - tokens.TimedeltaValue(days=10, minutes=40),
+                         tokens.DateTimeValue(27, 5, 2020, 19, 57, 35))
 
     def test_datetime_value_sub_timedelta_value_different_month_days(self):
-        self.assertEquals(tokens.DateTimeValue(31, 5, 2020, 0, 0, 0) - tokens.TimedeltaValue(months=1),
-                          tokens.DateTimeValue(30, 4, 2020, 0, 0, 0))
+        self.assertEqual(tokens.DateTimeValue(31, 5, 2020, 0, 0, 0) - tokens.TimedeltaValue(months=1),
+                         tokens.DateTimeValue(30, 4, 2020, 0, 0, 0))
 
     def test_datetime_value_sub_timedelta_value_leap_year(self):
-        self.assertEquals(tokens.DateTimeValue(29, 2, 2020, 0, 0, 0) + tokens.TimedeltaValue(years=1),
-                          tokens.DateTimeValue(28, 2, 2021, 0, 0, 0))
+        self.assertEqual(tokens.DateTimeValue(29, 2, 2020, 0, 0, 0) + tokens.TimedeltaValue(years=1),
+                         tokens.DateTimeValue(28, 2, 2021, 0, 0, 0))
 
     def test_datetime_value_sub_timedelta_value_different_month_days_and_leap_year(self):
-        self.assertEquals(tokens.DateTimeValue(29, 2, 2020, 0, 0, 0) - tokens.TimedeltaValue(years=1, months=1),
-                          tokens.DateTimeValue(29, 1, 2019, 0, 0, 0))
-        self.assertEquals(tokens.DateTimeValue(31, 3, 2020, 0, 0, 0) - tokens.TimedeltaValue(years=1, months=1),
-                          tokens.DateTimeValue(28, 2, 2019, 0, 0, 0))
+        self.assertEqual(tokens.DateTimeValue(29, 2, 2020, 0, 0, 0) - tokens.TimedeltaValue(years=1, months=1),
+                         tokens.DateTimeValue(29, 1, 2019, 0, 0, 0))
+        self.assertEqual(tokens.DateTimeValue(31, 3, 2020, 0, 0, 0) - tokens.TimedeltaValue(years=1, months=1),
+                         tokens.DateTimeValue(28, 2, 2019, 0, 0, 0))
 
     def test_datetime_value_sub_date_value(self):
-        self.assertEquals(tokens.DateTimeValue(29, 2, 2020, 0, 0, 0) - tokens.DateValue(28, 2, 2020), tokens.TimedeltaValue(days=1))
+        self.assertEqual(tokens.DateTimeValue(29, 2, 2020, 0, 0, 0) - tokens.DateValue(28, 2, 2020),
+                         tokens.TimedeltaValue(days=1))
 
     def test_datetime_value_sub_date_value_different_month_days(self):
-        self.assertEquals(tokens.DateTimeValue(30, 6, 2020, 0, 0, 0) - tokens.DateValue(31, 5, 2020),
-                          tokens.TimedeltaValue(months=1))
+        self.assertEqual(tokens.DateTimeValue(30, 6, 2020, 0, 0, 0) - tokens.DateValue(31, 5, 2020),
+                         tokens.TimedeltaValue(months=1))
 
     def test_datetime_value_sub_date_value_leap_year(self):
-        self.assertEquals(tokens.DateTimeValue(28, 2, 2021, 0, 0, 0) - tokens.DateValue(29, 2, 2020), tokens.TimedeltaValue(years=1))
+        self.assertEqual(tokens.DateTimeValue(28, 2, 2021, 0, 0, 0) - tokens.DateValue(29, 2, 2020),
+                         tokens.TimedeltaValue(years=1))
 
     def test_datetime_value_sub_date_value_different_month_days_and_leap_year(self):
-        self.assertEquals(tokens.DateTimeValue(29, 3, 2021, 0, 0, 0) - tokens.DateValue(29, 2, 2020),
-                          tokens.TimedeltaValue(years=1, months=1))
-        self.assertEquals(tokens.DateTimeValue(28, 2, 2021, 0, 0, 0) - tokens.DateValue(31, 1, 2020),
-                          tokens.TimedeltaValue(years=1, months=1))
+        self.assertEqual(tokens.DateTimeValue(29, 3, 2021, 0, 0, 0) - tokens.DateValue(29, 2, 2020),
+                         tokens.TimedeltaValue(years=1, months=1))
+        self.assertEqual(tokens.DateTimeValue(28, 2, 2021, 0, 0, 0) - tokens.DateValue(31, 1, 2020),
+                         tokens.TimedeltaValue(years=1, months=1))
 
     def test_datetime_value_sub_datetime_value(self):
-        self.assertEquals(tokens.DateTimeValue(28, 2, 2021, 0, 0, 0) - tokens.DateTimeValue(27, 2, 2021, 23, 59, 59),
-                          tokens.TimedeltaValue(seconds=1))
+        self.assertEqual(tokens.DateTimeValue(28, 2, 2021, 0, 0, 0) - tokens.DateTimeValue(27, 2, 2021, 23, 59, 59),
+                         tokens.TimedeltaValue(seconds=1))
 
     def test_datetime_value_sub_datetime_value_different_month_days(self):
-        self.assertEquals(tokens.DateTimeValue(30, 6, 2020, 0, 0, 0) - tokens.DateTimeValue(31, 5, 2020, 0, 0, 0),
-                          tokens.TimedeltaValue(months=1))
+        self.assertEqual(tokens.DateTimeValue(30, 6, 2020, 0, 0, 0) - tokens.DateTimeValue(31, 5, 2020, 0, 0, 0),
+                         tokens.TimedeltaValue(months=1))
 
     def test_datetime_value_sub_datetime_value_leap_year(self):
-        self.assertEquals(tokens.DateTimeValue(28, 2, 2021, 0, 0, 0) - tokens.DateTimeValue(29, 2, 2020, 0, 0, 0),
-                          tokens.TimedeltaValue(years=1))
+        self.assertEqual(tokens.DateTimeValue(28, 2, 2021, 0, 0, 0) - tokens.DateTimeValue(29, 2, 2020, 0, 0, 0),
+                         tokens.TimedeltaValue(years=1))
 
     def test_datetime_value_sub_datetime_value_different_month_days_and_leap_year(self):
-        self.assertEquals(tokens.DateTimeValue(29, 3, 2021, 0, 0, 0) - tokens.DateTimeValue(29, 2, 2020, 0, 0, 0),
-                          tokens.TimedeltaValue(years=1, months=1))
-        self.assertEquals(tokens.DateTimeValue(28, 2, 2021, 0, 0, 0) - tokens.DateTimeValue(31, 1, 2020, 0, 0, 0),
-                          tokens.TimedeltaValue(years=1, months=1))
+        self.assertEqual(tokens.DateTimeValue(29, 3, 2021, 0, 0, 0) - tokens.DateTimeValue(29, 2, 2020, 0, 0, 0),
+                         tokens.TimedeltaValue(years=1, months=1))
+        self.assertEqual(tokens.DateTimeValue(28, 2, 2021, 0, 0, 0) - tokens.DateTimeValue(31, 1, 2020, 0, 0, 0),
+                         tokens.TimedeltaValue(years=1, months=1))
 
     def test_datetime_value_sub_timedelta_value_overflow(self):
         with self.assertRaises(OverflowError):
             val = tokens.DateTimeValue(1, 1, 1, 20, 37, 35) - tokens.TimedeltaValue(hours=21)
 
     def test_datetime_value_sub_time_value(self):
-        self.assertEquals(tokens.DateTimeValue(1, 1, 1, 20, 37, 35) - tokens.TimeValue(19, 37, 35), tokens.TimedeltaValue(hours=1))
+        self.assertEqual(tokens.DateTimeValue(1, 1, 1, 20, 37, 35) - tokens.TimeValue(19, 37, 35),
+                         tokens.TimedeltaValue(hours=1))
 
 
 class TimedeltaValueTestCase(unittest.TestCase):
@@ -440,16 +443,24 @@ class TimedeltaValueTestCase(unittest.TestCase):
         self.assertFalse(tokens.TimedeltaValue(months=0, days=27) < tokens.TimedeltaValue(months=1, weeks=-1))
 
     def test_timedelta_value_add_timedelta_value(self):
-        self.assertTrue(tokens.TimedeltaValue(months=1) + tokens.TimedeltaValue(years=1) == tokens.TimedeltaValue(years=1, months=1))
+        self.assertTrue(
+            tokens.TimedeltaValue(months=1) + tokens.TimedeltaValue(years=1) == tokens.TimedeltaValue(years=1,
+                                                                                                      months=1))
 
     def test_timedelta_value_add_timedelta_value_negative(self):
-        self.assertTrue(tokens.TimedeltaValue(months=1) + tokens.TimedeltaValue(years=-1) == tokens.TimedeltaValue(years=-1, months=1))
+        self.assertTrue(
+            tokens.TimedeltaValue(months=1) + tokens.TimedeltaValue(years=-1) == tokens.TimedeltaValue(years=-1,
+                                                                                                       months=1))
 
     def test_timedelta_value_sub_timedelta_value(self):
-        self.assertTrue(tokens.TimedeltaValue(months=1) - tokens.TimedeltaValue(years=1) == tokens.TimedeltaValue(years=-1, months=1))
+        self.assertTrue(
+            tokens.TimedeltaValue(months=1) - tokens.TimedeltaValue(years=1) == tokens.TimedeltaValue(years=-1,
+                                                                                                      months=1))
 
     def test_timedelta_value_sub_timedelta_value_negative(self):
-        self.assertTrue(tokens.TimedeltaValue(months=1) - tokens.TimedeltaValue(years=-1) == tokens.TimedeltaValue(years=1, months=1))
+        self.assertTrue(
+            tokens.TimedeltaValue(months=1) - tokens.TimedeltaValue(years=-1) == tokens.TimedeltaValue(years=1,
+                                                                                                       months=1))
 
     def test_timedelta_value_mul_timedelta_value(self):
         self.assertTrue(tokens.TimedeltaValue(months=1, days=5) * 2 == tokens.TimedeltaValue(months=2, days=10))

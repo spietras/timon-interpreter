@@ -12,7 +12,7 @@ from timoninterpreter.execution import Environment
 class BaseExecutionTestCase(unittest.TestCase):
     def assert_return_value(self, expected_value):
         with FileReader("whatever") as fr:
-            self.assertEquals(expected_value, Program(Lexer(fr)).execute(Environment()))
+            self.assertEqual(expected_value, Program(Lexer(fr)).execute(Environment()))
 
     def assert_raises(self, expected_error):
         with FileReader("whatever") as fr:

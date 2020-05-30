@@ -304,6 +304,11 @@ class FunctionDefinitionStatementNodeTestCase(BaseParsingTestCase):
         with FileReader("whatever") as fr:
             self.assertRaises(error_handling.SyntacticError, syntax_nodes.FunctionDefinitionStatement, Lexer(fr))
 
+    @mock.patch('builtins.open', return_value=io.StringIO("fun abc() { fun def() {}; };"))
+    def test_function_definition_nested(self, mock_open):
+        with FileReader("whatever") as fr:
+            self.assertRaises(error_handling.SyntacticError, syntax_nodes.FunctionDefinitionStatement, Lexer(fr))
+
 
 # noinspection PyUnusedLocal
 class VariableDefinitionStatementNodeTestCase(BaseParsingTestCase):
